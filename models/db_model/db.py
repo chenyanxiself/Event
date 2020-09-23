@@ -14,8 +14,8 @@ from config.settings import get_settings
 # DATABASE_URL = "mysql+pymysql://root:root@localhost:3306/auto_test_frame"
 mysql_config = get_settings().mysql_config
 DATABASE_URL = f"mysql+pymysql://{mysql_config['username']}:{mysql_config['password']}@{mysql_config['host']}:{mysql_config['port']}/{mysql_config['database']}"
-engin = sqlalchemy.create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engin)
+engine = sqlalchemy.create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 Base = declarative_base()
 
 
@@ -77,14 +77,15 @@ class Db:
 
 if __name__ == '__main__':
     from models.db_model.model import *
-    session=Db.get_session()
+    session = Db.get_session()
     all_relation: List[AtpProjectApiSuiteCaseRelation] = session.query(AtpProjectApiSuiteCaseRelation).filter(
         # AtpProjectApiSuiteCaseRelation.is_delete == 2,
         AtpProjectApiSuiteCaseRelation.suite_id == 8,
     ).order_by(AtpProjectApiSuiteCaseRelation.sort.desc()).all()
     print(all_relation[0])
-    all_relation[0].is_delete=2
+    all_relation[0].is_delete = 2
     session.commit()
+
     # all_relation: List[AtpProjectApiSuiteCaseRelation] = session.query(AtpProjectApiSuiteCaseRelation).filter(
     #     # AtpProjectApiSuiteCaseRelation.is_delete == 2,
     #     AtpProjectApiSuiteCaseRelation.suite_id == 8,
