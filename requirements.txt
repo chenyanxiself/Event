@@ -10,3 +10,4 @@ aiofiles==0.5.0
 pymysql==0.10.1
 requests==2.24.0
 bcrypt==3.2.0
+cryptography==3.2.1
