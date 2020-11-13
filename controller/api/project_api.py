@@ -14,7 +14,7 @@ from models.request_model.project_reqm import *
 from util.jwt_util import auth_token
 import logging, hashlib, time, os, datetime, json
 from config.settings import get_settings
-from typing import List
+from typing import List, Optional
 from util.request_util import execute_suite_request
 from sqlalchemy import or_
 from copy import deepcopy
@@ -353,14 +353,18 @@ async def get_api_case_by_condition(
         page_num: int = Query(...),
         page_size: int = Query(...),
         type: int = Query(...),
-        keyword: str = Query(None)
+        keyword: Optional[str] = Query(None)
 ) -> BaseRes:
     _, error = verify_project_deleted(project_id)
     if error:
         return error
     try:
-        offset = page_size * (page_num - 1)
-        limit = page_size
+        if page_num == 0 and page_size == 0:
+            offset = None
+            limit = None
+        else:
+            offset = page_size * (page_num - 1)
+            limit = page_size
         condition_list: list = [
             AtpProjectApiCase.is_delete == 2,
             AtpProjectApiCase.project_id == project_id
@@ -585,52 +589,52 @@ async def get_suite_info_by_id(id: int = Query(...), project_id: int = Query(...
              AtpProjectApiSuiteCaseRelation.suite_id == id],
             AtpProjectApiSuiteCaseRelation.sort
         )
-        suite_info: AtpProjectApiSuite = Db.select_by_primary_key(AtpProjectApiSuite, id)
-
+        # suite_info: AtpProjectApiSuite = Db.select_by_primary_key(AtpProjectApiSuite, id)
+        return BaseRes(data=case_list)
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))
-    condition_list: list = [
-        AtpProjectApiCase.is_delete == 2,
-        AtpProjectApiCase.project_id == project_id
-    ]
-    try:
-        api_case_list: List[AtpProjectApiCase] = Db.select_by_condition(
-            AtpProjectApiCase,
-            condition_list,
-            AtpProjectApiCase.id,
-        )
-    except Exception as e:
-        logger.error(e)
-        return BaseRes(status=0, error=str(e))
-    total_case_list: list = []
-    order_id = 0
-    for item in api_case_list:
-        item_dict: dict = {}
-        order_id += 1
-        item_dict.setdefault('id', item.id)
-        item_dict.setdefault('order_id', order_id)
-        item_dict.setdefault('name', item.name)
-        item_dict.setdefault('method', item.method)
-        item_dict.setdefault('is_use_env', item.is_use_env)
-        item_dict.setdefault('request_host', item.request_host)
-        item_dict.setdefault('env_host', item.env_host)
-        item_dict.setdefault('request_path', item.request_path)
-        item_dict.setdefault('request_headers', json.loads(item.request_headers))
-        item_dict.setdefault('request_query', json.loads(item.request_query))
-        item_dict.setdefault('request_body', json.loads(item.request_body))
-        if item.is_use_env:
-            env: AtpProjectEnv = Db.select_by_primary_key(AtpProjectEnv, item.env_host)
-            item_dict.setdefault('real_host', env.host)
-        else:
-            item_dict.setdefault('real_host', item.request_host)
-        total_case_list.append(item_dict)
-    return BaseRes(data={
-        'id': suite_info.id,
-        'suite_name': suite_info.name,
-        'total_case_list': total_case_list,
-        'relation': case_list,
-    })
+    # condition_list: list = [
+    #     AtpProjectApiCase.is_delete == 2,
+    #     AtpProjectApiCase.project_id == project_id
+    # ]
+    # try:
+    #     api_case_list: List[AtpProjectApiCase] = Db.select_by_condition(
+    #         AtpProjectApiCase,
+    #         condition_list,
+    #         AtpProjectApiCase.id,
+    #     )
+    # except Exception as e:
+    #     logger.error(e)
+    #     return BaseRes(status=0, error=str(e))
+    # total_case_list: list = []
+    # order_id = 0
+    # for item in api_case_list:
+    #     item_dict: dict = {}
+    #     order_id += 1
+    #     item_dict.setdefault('id', item.id)
+    #     item_dict.setdefault('order_id', order_id)
+    #     item_dict.setdefault('name', item.name)
+    #     item_dict.setdefault('method', item.method)
+    #     item_dict.setdefault('is_use_env', item.is_use_env)
+    #     item_dict.setdefault('request_host', item.request_host)
+    #     item_dict.setdefault('env_host', item.env_host)
+    #     item_dict.setdefault('request_path', item.request_path)
+    #     item_dict.setdefault('request_headers', json.loads(item.request_headers))
+    #     item_dict.setdefault('request_query', json.loads(item.request_query))
+    #     item_dict.setdefault('request_body', json.loads(item.request_body))
+    #     if item.is_use_env:
+    #         env: AtpProjectEnv = Db.select_by_primary_key(AtpProjectEnv, item.env_host)
+    #         item_dict.setdefault('real_host', env.host)
+    #     else:
+    #         item_dict.setdefault('real_host', item.request_host)
+    #     total_case_list.append(item_dict)
+    # return BaseRes(data={
+    #     'id': suite_info.id,
+    #     'suite_name': suite_info.name,
+    #     'total_case_list': total_case_list,
+    #     'relation': case_list,
+    # })
 
 
 @router.post('/createSuite/', response_model=BaseRes)
@@ -786,7 +790,7 @@ async def update_suite_case_sort(
             del all_relation[before_index]
             all_relation.insert(after_index, temp)
             for i, v in enumerate(all_relation[before_index:]):
-                v.sort = i + before_index+1
+                v.sort = i + before_index + 1
         session.commit()
         return BaseRes()
     except Exception as e:
