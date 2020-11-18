@@ -18,6 +18,7 @@ from controller.api.request_api import router as request_route
 from controller.api.project_report_api import router as report_route
 from controller.api.project_case_api import router as case_route
 from controller.api.workstation_api import router as workstation_route
+from controller.api.project_overview_api import router as overview_route
 
 
 def create_app() -> FastAPI:
@@ -61,6 +62,11 @@ def create_app() -> FastAPI:
         workstation_route,
         prefix='/api/v1/workstation',
         tags=['workstation'],
+    )
+    app.include_router(
+        overview_route,
+        prefix='/api/v1/project/overview',
+        tags=['overview'],
     )
     return app
 
