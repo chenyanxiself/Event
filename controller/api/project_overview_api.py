@@ -380,7 +380,7 @@ async def create_list(
         project_id: int = Body(..., embed=True),
         list_id: int = Body(..., embed=True),
         title: str = Body(..., embed=True),
-        description: str = Body(..., embed=True),
+        description: str = Body(None, embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
