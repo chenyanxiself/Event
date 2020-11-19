@@ -26,7 +26,7 @@ class AtpOverviewTask(Base):
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String(100), nullable=False, comment='任务标题')
-    description = Column(String(300), nullable=False, comment='任务描述')
+    description = Column(String(300), comment='任务描述')
     listId = Column(BigInteger,name='list_id', nullable=False, comment='任务列id')
     projectId = Column(BigInteger,name='project_id', nullable=False, comment='项目id')
     status = Column(TINYINT, nullable=False, comment='0 未完成 1已完成')
