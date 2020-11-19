@@ -171,7 +171,8 @@ async def update_task(
         exists_condition = [
             AtpOverviewList.isDelete == 2,
             AtpOverviewList.projectId == project_id,
-            AtpOverviewList.title == title
+            AtpOverviewList.title == title,
+            AtpOverviewList.id != list_id
         ]
         count = Db.select_count_by_condition(AtpOverviewList.id, exists_condition)
         if count != 0:
