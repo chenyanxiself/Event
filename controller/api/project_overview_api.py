@@ -18,6 +18,7 @@ from typing import List, Optional
 from util.project_verify import verify_project_deleted, verify_project_filed, verify_project_member, \
     verify_project_owner
 import traceback
+from sqlalchemy import func
 
 router = APIRouter()
 logger = logging.getLogger(API_OVERVIEW)
@@ -153,6 +154,41 @@ async def delete_task(
         session.close()
 
 
+@router.post('/updateList/', response_model=BaseRes)
+async def update_task(
+        project_id: int = Body(..., embed=True),
+        list_id: int = Body(..., embed=True),
+        title: str = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_member(token_user.user_id, project_id)
+    if error:
+        return error
+    try:
+        exists_condition = [
+            AtpOverviewList.isDelete == 2,
+            AtpOverviewList.projectId == project_id,
+            AtpOverviewList.title == title
+        ]
+        count = Db.select_count_by_condition(AtpOverviewList.id, exists_condition)
+        if count != 0:
+            return BaseRes(status=0, error='任务栏标题已存在')
+        condition = [
+            AtpOverviewList.id == list_id,
+            AtpOverviewList.isDelete == 2,
+        ]
+        Db.update_by_condition(AtpOverviewList, condition, {
+            AtpOverviewList.title: title
+        })
+        return BaseRes()
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
 @router.post('/updateTask/', response_model=BaseRes)
 async def update_task(
         project_id: int = Body(..., embed=True),
@@ -281,6 +317,100 @@ async def update_task_sort(
                 i.sort += 1
             start_task.sort = new_sort
             start_task.listId = end_list.id
+        session.commit()
+        return BaseRes()
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
+
+
+@router.post('/createList/', response_model=BaseRes)
+async def create_list(
+        project_id: int = Body(..., embed=True),
+        title: str = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_member(token_user.user_id, project_id)
+    if error:
+        return error
+    session = Db.get_session()
+    try:
+        exists_condition = [
+            AtpOverviewList.isDelete == 2,
+            AtpOverviewList.projectId == project_id,
+            AtpOverviewList.title == title
+        ]
+        count = session.query(func.count(AtpOverviewList.id)).filter(*exists_condition).all()[0][0]
+        if count != 0:
+            return BaseRes(status=0, error='任务栏标题已存在')
+        max_sort_item = session.query(func.max(AtpOverviewList.sort)).filter(*[
+            AtpOverviewList.isDelete == 2,
+            AtpOverviewList.projectId == project_id
+        ]).first()
+        if max_sort_item[0]:
+            max_sort = max_sort_item[0] + 1
+        else:
+            max_sort = 1
+        session.add(AtpOverviewList(
+            title=title,
+            projectId=project_id,
+            sort=max_sort,
+            creator=token_user.user_id,
+            createTime=datetime.datetime.now(),
+            isDelete=2
+        ))
+        session.commit()
+        return BaseRes()
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
+
+
+@router.post('/createTask/', response_model=BaseRes)
+async def create_list(
+        project_id: int = Body(..., embed=True),
+        list_id: int = Body(..., embed=True),
+        title: str = Body(..., embed=True),
+        description: str = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_member(token_user.user_id, project_id)
+    if error:
+        return error
+    session = Db.get_session()
+    try:
+        max_sort_item = session.query(func.max(AtpOverviewTask.sort)).filter(*[
+            AtpOverviewTask.isDelete == 2,
+            AtpOverviewTask.projectId == project_id,
+            AtpOverviewTask.listId == list_id
+        ]).first()
+        if max_sort_item[0]:
+            max_sort = max_sort_item[0] + 1
+        else:
+            max_sort = 1
+        session.add(AtpOverviewTask(
+            title=title,
+            projectId=project_id,
+            sort=max_sort,
+            description=description,
+            listId=list_id,
+            status=2,
+            creator=token_user.user_id,
+            createTime=datetime.datetime.now(),
+            isDelete=2
+        ))
         session.commit()
         return BaseRes()
     except Exception as e:
