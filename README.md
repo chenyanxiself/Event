@@ -2,6 +2,11 @@
     sqlacodegen --outfile models.py mysql+pymsql://root:root@localhost:3306/auto-test-frame
    
 # 生成数据库表
-    在model.py文件下调用
-    from models.db_model.db import engine
-        Base.metadata.create_all(engine)
+    修改config/local.py 中数据库文件
+    手动创建数据库database
+    cd models/db_model
+    python model.py
+
+# 部署
+    pip install -r requirements.ext
+    python run.py

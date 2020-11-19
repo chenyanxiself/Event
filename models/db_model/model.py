@@ -272,3 +272,7 @@ class SysUserRole(Base):
     updator = Column(BigInteger, comment='更新人id')
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
+
+if __name__ == '__main__':
+    from models.db_model.db import engine
+    Base.metadata.create_all(engine)

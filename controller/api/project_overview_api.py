@@ -17,16 +17,19 @@ from config.settings import get_settings
 from typing import List, Optional
 from util.project_verify import verify_project_deleted, verify_project_filed, verify_project_member, \
     verify_project_owner
+import traceback
 
 router = APIRouter()
 logger = logging.getLogger(API_OVERVIEW)
 
 
-@router.get('/getTaskByCondition/', response_model=BaseRes, dependencies=[Depends(auth_token)])
+@router.get('/getTaskByCondition/', response_model=BaseRes)
 async def get_task_by_condition(
         project_id: int = Query(...),
         keyword: str = Query(None),
-        type: int = Query(default=None),
+        relation_type: int = Query(...),
+        filter_type: int = Query(...),
+        token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_deleted(project_id)
     if error:
@@ -46,8 +49,10 @@ async def get_task_by_condition(
             ]
             if keyword:
                 task_condition.append(AtpOverviewTask.title.like(f'%{keyword}%'))
-            if type in [0, 1]:
-                task_condition.append(AtpOverviewTask.status == type)
+            if relation_type == 2:
+                task_condition.append(AtpOverviewTask.creator == token_user.user_id)
+            if filter_type in [1, 2]:
+                task_condition.append(AtpOverviewTask.status == filter_type)
             tasks: List[AtpOverviewTask] = Db.select_by_condition(AtpOverviewTask, task_condition, AtpOverviewTask.sort)
             l.taskList = tasks
             for t in tasks:
@@ -59,7 +64,33 @@ async def get_task_by_condition(
             l.taskList = tasks
         return BaseRes(data=task_list)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getProjectProgress/', response_model=BaseRes, dependencies=[Depends(auth_token)])
+async def get_project_progress(
+        project_id: int = Query(...)
+) -> BaseRes:
+    _, error = verify_project_deleted(project_id)
+    if error:
+        return error
+    try:
+        finish_count = Db.select_count_by_condition(AtpOverviewTask.id, [
+            AtpOverviewTask.isDelete == 2,
+            AtpOverviewTask.projectId == project_id,
+            AtpOverviewTask.status == 1
+        ])
+        total_count = Db.select_count_by_condition(AtpOverviewTask.id, [
+            AtpOverviewTask.isDelete == 2,
+            AtpOverviewTask.projectId == project_id,
+        ])
+        return BaseRes(data={
+            'total': total_count,
+            'finish': finish_count
+        })
+    except Exception as e:
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -83,7 +114,7 @@ async def get_task_by_condition(
         })
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -116,15 +147,17 @@ async def delete_task(
         return BaseRes()
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
 
 
-@router.post('/updateListSort/', response_model=BaseRes)
-async def delete_task(
+@router.post('/updateTask/', response_model=BaseRes)
+async def update_task(
         project_id: int = Body(..., embed=True),
-        start_id: int = Body(..., embed=True),
-        end_id: int = Body(..., embed=True),
+        task_id: int = Body(..., embed=True),
+        status: int = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -135,18 +168,124 @@ async def delete_task(
         return error
     session = Db.get_session()
     try:
-        print(start_id)
-        print(end_id)
-        start_list: AtpOverviewList = session.query(AtpOverviewList).get(start_id)
-        end_list: AtpOverviewList = session.query(AtpOverviewList).get(end_id)
-
-        if start_list and end_list:
-            temp = start_list.sort
-            start_list.sort = end_list.sort
-            end_list.sort = temp
-            session.commit()
+        session.query(AtpOverviewTask).filter(*[
+            AtpOverviewTask.id == task_id,
+            AtpOverviewTask.isDelete == 2
+        ]).update({
+            AtpOverviewTask.status: status
+        })
+        session.commit()
         return BaseRes()
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
+
+
+@router.post('/updateListSort/', response_model=BaseRes)
+async def update_task(
+        project_id: int = Body(..., embed=True),
+        start_index: int = Body(..., embed=True),
+        end_index: int = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_member(token_user.user_id, project_id)
+    if error:
+        return error
+    session = Db.get_session()
+    try:
+        target_list_columns: List[AtpOverviewList] = session.query(AtpOverviewList).filter(*[
+            AtpOverviewList.isDelete == 2,
+            AtpOverviewList.projectId == project_id,
+        ]).order_by(AtpOverviewList.sort).all()
+        new_sort = target_list_columns[end_index].sort
+        if start_index < end_index:
+            for i in target_list_columns[start_index + 1:end_index + 1]:
+                i.sort -= 1
+        else:
+            for i in target_list_columns[end_index:start_index]:
+                i.sort += 1
+        target_list_columns[start_index].sort = new_sort
+        session.commit()
+        return BaseRes()
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
+
+
+@router.post('/updateTaskSort/', response_model=BaseRes)
+async def update_task_sort(
+        project_id: int = Body(..., embed=True),
+        start_list_id: int = Body(..., embed=True),
+        end_list_id: int = Body(..., embed=True),
+        start_index: int = Body(..., embed=True),
+        end_index: int = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_member(token_user.user_id, project_id)
+    if error:
+        return error
+    session = Db.get_session()
+    try:
+        start_list: AtpOverviewList = session.query(AtpOverviewList).get(start_list_id)
+        end_list: AtpOverviewList = session.query(AtpOverviewList).get(end_list_id)
+        if not (start_list and end_list):
+            return BaseRes()
+        if start_list_id == end_list_id:
+            target_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.isDelete == 2,
+                AtpOverviewList.projectId == project_id,
+                AtpOverviewTask.listId == start_list_id
+            ]).order_by(AtpOverviewTask.sort).all()
+            new_sort = target_task_columns[end_index].sort
+            if start_index < end_index:
+                for i in target_task_columns[start_index + 1:end_index + 1]:
+                    i.sort -= 1
+            else:
+                for i in target_task_columns[end_index:start_index]:
+                    i.sort += 1
+            target_task_columns[start_index].sort = new_sort
+        else:
+            start_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.isDelete == 2,
+                AtpOverviewList.projectId == project_id,
+                AtpOverviewTask.listId == start_list_id
+            ]).order_by(AtpOverviewTask.sort).all()
+            end_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.isDelete == 2,
+                AtpOverviewList.projectId == project_id,
+                AtpOverviewTask.listId == end_list_id
+            ]).order_by(AtpOverviewTask.sort).all()
+            start_task = start_task_columns[start_index]
+            for i in start_task_columns[start_index:]:
+                i.sort -= 1
+            if len(end_task_columns) == end_index:
+                try:
+                    new_sort = end_task_columns[-1].sort + 1
+                except Exception:
+                    new_sort = 1
+            else:
+                new_sort = end_task_columns[end_index].sort
+            for i in end_task_columns[end_index:]:
+                i.sort += 1
+            start_task.sort = new_sort
+            start_task.listId = end_list.id
+        session.commit()
+        return BaseRes()
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+    finally:
+        session.close()
