@@ -14,7 +14,7 @@ from config.settings import get_settings
 # DATABASE_URL = "mysql+pymysql://root:root@localhost:3306/auto_test_frame"
 mysql_config = get_settings().mysql_config
 DATABASE_URL = f"mysql+pymysql://{mysql_config['username']}:{mysql_config['password']}@{mysql_config['host']}:{mysql_config['port']}/{mysql_config['database']}"
-engine = sqlalchemy.create_engine(DATABASE_URL)
+engine = sqlalchemy.create_engine(DATABASE_URL,pool_recycle=60)
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 Base = declarative_base()
 
