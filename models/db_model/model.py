@@ -27,15 +27,16 @@ class AtpOverviewTask(Base):
     id = Column(BigInteger, primary_key=True)
     title = Column(String(100), nullable=False, comment='任务标题')
     description = Column(String(300), comment='任务描述')
-    listId = Column(BigInteger,name='list_id', nullable=False, comment='任务列id')
-    projectId = Column(BigInteger,name='project_id', nullable=False, comment='项目id')
+    listId = Column(BigInteger, name='list_id', nullable=False, comment='任务列id')
+    projectId = Column(BigInteger, name='project_id', nullable=False, comment='项目id')
     status = Column(TINYINT, nullable=False, comment='0 未完成 1已完成')
+    priority = Column(TINYINT, nullable=False, server_default=text("'3'"))
     sort = Column(Integer, nullable=False, comment='排序字段')
     creator = Column(BigInteger, comment='创建人id')
-    createTime = Column(DateTime,name='create_time', comment='创建时间')
+    createTime = Column(DateTime, name='create_time', comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
-    updateTime = Column(DateTime,name='update_time', comment='创建时间')
-    isDelete = Column(TINYINT,name='is_delete', server_default=text("'2'"))
+    updateTime = Column(DateTime, name='update_time', comment='创建时间')
+    isDelete = Column(TINYINT, name='is_delete', server_default=text("'2'"))
 
 
 class AtpProject(Base):
@@ -274,6 +275,8 @@ class SysUserRole(Base):
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
 
+
 if __name__ == '__main__':
     from models.db_model.db import engine
+
     Base.metadata.create_all(engine)

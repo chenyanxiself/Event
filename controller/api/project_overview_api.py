@@ -57,7 +57,7 @@ async def get_task_by_condition(
             tasks: List[AtpOverviewTask] = Db.select_by_condition(AtpOverviewTask, task_condition, AtpOverviewTask.sort)
             l.taskList = tasks
             for t in tasks:
-                user: SysUser = Db.select_by_primary_key(SysUser, int(t.creator))
+                user: SysUser = Db.select_by_primary_key(SysUser, int(str(t.creator)))
                 t.creator = {
                     'id': user.id if user else 0,
                     'cname': user.cname if user else ''
@@ -195,6 +195,7 @@ async def update_task(
         project_id: int = Body(..., embed=True),
         task_id: int = Body(..., embed=True),
         status: int = Body(..., embed=True),
+        priority: int = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -209,7 +210,8 @@ async def update_task(
             AtpOverviewTask.id == task_id,
             AtpOverviewTask.isDelete == 2
         ]).update({
-            AtpOverviewTask.status: status
+            AtpOverviewTask.status: status,
+            AtpOverviewTask.priority: priority
         })
         session.commit()
         return BaseRes()
