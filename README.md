@@ -1,5 +1,5 @@
 # 从数据库生成models.py文件
-    sqlacodegen --outfile models.py mysql+pymsql://root:root@localhost:3306/auto-test-frame
+    sqlacodegen --outfile models.py mysql+pymysql://root:root@localhost:3306/auto_test_frame
    
 # 生成数据库表
     修改config/local.py 中数据库文件

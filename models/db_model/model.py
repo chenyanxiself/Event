@@ -1,11 +1,21 @@
 # coding: utf-8
-from sqlalchemy import BigInteger, Column, DateTime, Integer, String, text
+from sqlalchemy import BigInteger, Column, DateTime, Integer, String, text, Text
 from sqlalchemy.dialects.mysql import TINYINT, VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 metadata = Base.metadata
 
+class AtpFileSystemFile(Base):
+    __tablename__ = 'atp_file_system_file'
+
+    id = Column(BigInteger, primary_key=True)
+    name = Column(String(100), nullable=False, comment='文件名')
+    creator = Column(BigInteger, comment='创建人id')
+    create_time = Column(DateTime, comment='创建时间')
+    updator = Column(BigInteger, comment='更新人id')
+    update_time = Column(DateTime, comment='创建时间')
+    is_delete = Column(TINYINT, server_default=text("'2'"))
 
 class AtpOverviewList(Base):
     __tablename__ = 'atp_overview_list'
@@ -26,17 +36,19 @@ class AtpOverviewTask(Base):
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String(100), nullable=False, comment='任务标题')
-    description = Column(String(300), comment='任务描述')
     listId = Column(BigInteger, name='list_id', nullable=False, comment='任务列id')
     projectId = Column(BigInteger, name='project_id', nullable=False, comment='项目id')
     status = Column(TINYINT, nullable=False, comment='0 未完成 1已完成')
-    priority = Column(TINYINT, nullable=False, server_default=text("'3'"))
     sort = Column(Integer, nullable=False, comment='排序字段')
     creator = Column(BigInteger, comment='创建人id')
     createTime = Column(DateTime, name='create_time', comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
-    updateTime = Column(DateTime, name='update_time', comment='创建时间')
-    isDelete = Column(TINYINT, name='is_delete', server_default=text("'2'"))
+    updateTime = Column(DateTime, comment='创建时间',name='update_time')
+    isDelete = Column(TINYINT, server_default=text("'2'"),name='is_delete')
+    description = Column(String(300), comment='任务描述')
+    priority = Column(TINYINT, server_default=text("'3'"))
+    follower = Column(Text)
+    img = Column(Text)
 
 
 class AtpProject(Base):
@@ -46,7 +58,7 @@ class AtpProject(Base):
     name = Column(VARCHAR(50), nullable=False, comment='项目名称')
     remark = Column(VARCHAR(200), comment='项目简介')
     type = Column(TINYINT, server_default=text("'1'"), comment='项目类型 1 进行中 0 已归档')
-    url = Column(VARCHAR(500), comment='项目封面')
+    img = Column(BigInteger, comment='项目封面')
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')

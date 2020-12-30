@@ -14,7 +14,7 @@ from models.request_model.project_reqm import *
 from util.jwt_util import auth_token
 import logging, hashlib, time, os, datetime, json
 from config.settings import get_settings
-from typing import List, Optional
+from typing import List, Optional, Any
 from util.project_verify import verify_project_deleted, verify_project_filed, verify_project_member, \
     verify_project_owner
 import traceback
@@ -194,8 +194,8 @@ async def update_task(
 async def update_task(
         project_id: int = Body(..., embed=True),
         task_id: int = Body(..., embed=True),
-        status: int = Body(..., embed=True),
-        priority: int = Body(..., embed=True),
+        value: Any = Body(..., embed=True),
+        key: str = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -210,8 +210,7 @@ async def update_task(
             AtpOverviewTask.id == task_id,
             AtpOverviewTask.isDelete == 2
         ]).update({
-            AtpOverviewTask.status: status,
-            AtpOverviewTask.priority: priority
+            getattr(AtpOverviewTask, key): value
         })
         session.commit()
         return BaseRes()
@@ -383,7 +382,10 @@ async def create_list(
         project_id: int = Body(..., embed=True),
         list_id: int = Body(..., embed=True),
         title: str = Body(..., embed=True),
+        priority: int = Body(..., embed=True),
+        follower: List[int] = Body(..., embed=True),
         description: str = Body(None, embed=True),
+        attachment: List[int] = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -408,6 +410,9 @@ async def create_list(
             projectId=project_id,
             sort=max_sort,
             description=description,
+            priority=priority,
+            follower=json.dumps(follower),
+            img=json.dumps(attachment),
             listId=list_id,
             status=2,
             creator=token_user.user_id,
@@ -422,3 +427,84 @@ async def create_list(
         return BaseRes(status=0, error=str(e))
     finally:
         session.close()
+
+
+@router.post('/uploadTaskImg/', response_model=BaseRes)
+async def upload_task_img(
+        projectImg: UploadFile = File(...),
+        project_id=Body(..., embed=True),
+        task_id=Body(None, embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_filed(project_id)
+    if error:
+        return error
+    _, error = verify_project_owner(token_user.user_id, project_id)
+    if error:
+        return error
+    encrypt_filename: str = hashlib.md5((projectImg.filename + str(time.time())).encode()).hexdigest()
+    suffix = projectImg.content_type.split('/')[1]
+    filename = encrypt_filename + '.' + suffix
+    try:
+        with open(get_settings().static_path + filename, 'wb+') as f:
+            f.write(await projectImg.read())
+        session = Db.get_session()
+        file = AtpFileSystemFile(
+            name=filename,
+            creator=token_user.user_id,
+            create_time=datetime.datetime.now()
+        )
+        session.add(file)
+        if task_id:
+            # Db.update_by_condition(
+            #     AtpOverviewTask,
+            #     [AtpOverviewTask.project_id == project_id, AtpOverviewTask.is_delete == 2],
+            #     {
+            #         AtpProject.url: 'http://localhost:8900/static/' + filename,
+            #         AtpOverviewTask.updator: token_user.user_id,
+            #         AtpOverviewTask.update_time: datetime.datetime.now()
+            #     }
+            # )
+            task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
+            file_ids = json.loads(task.img) if task.img else []
+            file_ids.append(file.id)
+        session.commit()
+        return BaseRes(data={'fileName': filename, 'id': file.id, 'url': 'http://localhost:8900/static/' + filename})
+    except Exception as e:
+        logger.error(e)
+        return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getTaskDetail/', response_model=BaseRes)
+async def get_task_by_condition(
+        project_id: int = Query(...),
+        task_id: int = Query(...),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    _, error = verify_project_deleted(project_id)
+    if error:
+        return error
+    session = Db.get_session()
+    try:
+        task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
+        followers: List[SysUser] = session.query(SysUser).filter(*[
+            SysUser.is_delete == 2,
+            SysUser.id.in_(json.loads(task.follower))
+        ]).all()
+        imgs: List[AtpFileSystemFile] = session.query(AtpFileSystemFile).filter(*[
+            AtpFileSystemFile.is_delete == 2,
+            AtpFileSystemFile.id.in_(json.loads(task.img))
+        ]).all()
+        img_list = []
+        for i in imgs:
+            img_list.append({
+                'id': i.id,
+                'name': i.name,
+                'url': 'http://localhost:8900/static/' + i.name
+            })
+        task.follower = followers
+        task.img = img_list
+        return BaseRes(data=task)
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))

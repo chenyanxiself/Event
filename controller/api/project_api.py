@@ -37,7 +37,7 @@ async def create_project(
             name=create_project.project_name,
             remark=create_project.project_desc,
             type=1,
-            url=create_project.project_img if create_project.project_img else 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png',
+            img=create_project.project_img,
             creator=user_id,
             create_time=datetime.datetime.now()
         )
@@ -67,6 +67,18 @@ async def get_all_project(type: int = Query(...)) -> BaseRes:
             AtpProject,
             [AtpProject.is_delete == 2, AtpProject.type == type]
         )
+        for project in project_list:
+            if project.img:
+                file: AtpFileSystemFile = Db.select_by_primary_key(AtpFileSystemFile, project.img)
+                project.img = {
+                    'id': file.id,
+                    'url': 'http://localhost:8900/static/' + file.name
+                }
+            else:
+                project.img = {
+                    'id': 0,
+                    'url': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png'
+                }
         return BaseRes(data=project_list)
     except Exception as e:
         logger.error(e)
@@ -87,6 +99,17 @@ async def get_project_id(id: int = Query(...)) -> BaseRes:
                 AtpProjectMember.is_delete == 2
             ]
         )
+        if project.img:
+            file: AtpFileSystemFile = Db.select_by_primary_key(AtpFileSystemFile, project.img)
+            project.img = {
+                'id': file.id,
+                'url': 'http://localhost:8900/static/' + file.name
+            }
+        else:
+            project.img = {
+                'id': 0,
+                'url': 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png'
+            }
         project.member = []
         for member_relation in member_relation_list:
             user: SysUser = Db.select_by_primary_key(SysUser, member_relation.member_id)
@@ -446,15 +469,23 @@ async def upload_project_img(
             _, error = verify_project_owner(token_user.user_id, project_id)
             if error:
                 return error
-            Db.update_by_condition(
-                AtpProject,
-                [AtpProject.id == project_id, AtpProject.is_delete == 2],
-                {
-                    AtpProject.url: 'http://localhost:8900/static/' + filename,
-                    AtpProject.updator: token_user.user_id,
-                    AtpProject.update_time: datetime.datetime.now()
-                }
+            session = Db.get_session()
+            file = AtpFileSystemFile(
+                name=filename,
+                creator=token_user.user_id,
+                create_time=datetime.datetime.now()
             )
+            session.add(file)
+            session.commit()
+            session.query(AtpProject) \
+                .filter(*[AtpProject.id == project_id, AtpProject.is_delete == 2]) \
+                .update({
+                # AtpProject.img: 'http://localhost:8900/static/' + filename,
+                AtpProject.img: file.id,
+                AtpProject.updator: token_user.user_id,
+                AtpProject.update_time: datetime.datetime.now()
+            })
+            session.commit()
         return BaseRes(data={'fileName': filename, 'url': 'http://localhost:8900/static/' + filename})
     except Exception as e:
         logger.error(e)

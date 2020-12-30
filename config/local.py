@@ -4,6 +4,8 @@
 # @Author  : yxChen
 
 from config.base import BaseSetting
+
+
 class Setting(BaseSetting):
     config = {
         "host": "0.0.0.0",
@@ -47,12 +49,10 @@ class Setting(BaseSetting):
             }
         },
     }
-    mysql_config={
-        'host':'localhost',
-        'port':3306,
-        'username':'root',
-        'password':'root',
-        'database':'auto_test_frame'
+    mysql_config = {
+        'host': 'localhost',
+        'port': 3306,
+        'username': 'root',
+        'password': 'root',
+        'database': 'auto_test_frame'
     }
-
-

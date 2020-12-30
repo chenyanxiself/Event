@@ -19,7 +19,7 @@ class DelProject(BaseModel):
 class Project(BaseModel):
     project_name: str = Body(...)
     project_desc: str = Body(None)
-    project_img: str = Body(None)
+    project_img: int = Body(None)
     project_member: List[int] = Body(...)
 
 
