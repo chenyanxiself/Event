@@ -73,6 +73,8 @@ def create_app() -> FastAPI:
 def start():
     import uvicorn
     app = create_app()
+    if not os.path.exists(get_settings().static_path):
+        os.mkdir(get_settings().static_path)
     uvicorn.run(app,**get_settings().config)
 
 if __name__ == '__main__':
