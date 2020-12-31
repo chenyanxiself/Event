@@ -492,14 +492,33 @@ async def upload_project_img(
         return BaseRes(status=0, error=str(e))
 
 
-@router.post('/delProjectImg/', response_model=BaseRes, dependencies=[Depends(auth_token)])
-async def del_project_img(filename: str = Body(..., embed=True)) -> BaseRes:
-    file_path = get_settings().static_path + filename
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        return BaseRes()
-    else:
+@router.post('/delProjectImg/', response_model=BaseRes)
+async def del_project_img(
+        file_id: int = Body(..., embed=True),
+        task_id: int = Body(None, embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    session = Db.get_session()
+    file: AtpFileSystemFile = session.query(AtpFileSystemFile).get(file_id)
+    if not file:
         return BaseRes(status=0, error='file not found')
+    file_path = get_settings().static_path + file.name
+    if not os.path.exists(file_path):
+        return BaseRes(status=0, error='file not found')
+    os.remove(file_path)
+    if task_id:
+        task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
+        _, error = verify_project_filed(task.projectId)
+        if error:
+            return error
+        _, error = verify_project_member(token_user.user_id, task.projectId)
+        if error:
+            return error
+        img_list = json.loads(task.img)
+        img_list.remove(file_id)
+        task.img = json.dumps(img_list)
+        session.commit()
+    return BaseRes()
 
 
 @router.post('/createProjectApiCase/', response_model=BaseRes)

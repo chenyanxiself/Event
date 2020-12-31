@@ -50,11 +50,18 @@ async def get_task_by_condition(
             ]
             if keyword:
                 task_condition.append(AtpOverviewTask.title.like(f'%{keyword}%'))
-            if relation_type == 2:
-                task_condition.append(AtpOverviewTask.creator == token_user.user_id)
             if filter_type in [1, 2]:
                 task_condition.append(AtpOverviewTask.status == filter_type)
+            if relation_type == 2:
+                task_condition.append(AtpOverviewTask.creator == token_user.user_id)
             tasks: List[AtpOverviewTask] = Db.select_by_condition(AtpOverviewTask, task_condition, AtpOverviewTask.sort)
+            # 根据条件找出所有符合条件的, 再筛选我关注的
+            if relation_type == 3:
+                target_tasks = []
+                for t in tasks:
+                    if token_user.user_id in json.loads(t.follower):
+                        target_tasks.append(t)
+                tasks = target_tasks
             l.taskList = tasks
             for t in tasks:
                 user: SysUser = Db.select_by_primary_key(SysUser, int(str(t.creator)))
@@ -455,6 +462,7 @@ async def upload_task_img(
             create_time=datetime.datetime.now()
         )
         session.add(file)
+        session.commit()
         if task_id:
             # Db.update_by_condition(
             #     AtpOverviewTask,
@@ -468,6 +476,7 @@ async def upload_task_img(
             task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
             file_ids = json.loads(task.img) if task.img else []
             file_ids.append(file.id)
+            task.img = json.dumps(file_ids)
         session.commit()
         return BaseRes(data={'fileName': filename, 'id': file.id, 'url': 'http://localhost:8900/static/' + filename})
     except Exception as e:
