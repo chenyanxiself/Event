@@ -462,6 +462,14 @@ async def upload_project_img(
     try:
         with open(get_settings().static_path + filename, 'wb+') as f:
             f.write(await projectImg.read())
+        session = Db.get_session()
+        file = AtpFileSystemFile(
+            name=filename,
+            creator=token_user.user_id,
+            create_time=datetime.datetime.now()
+        )
+        session.add(file)
+        session.commit()
         if project_id:
             _, error = verify_project_filed(project_id)
             if error:
@@ -469,14 +477,7 @@ async def upload_project_img(
             _, error = verify_project_owner(token_user.user_id, project_id)
             if error:
                 return error
-            session = Db.get_session()
-            file = AtpFileSystemFile(
-                name=filename,
-                creator=token_user.user_id,
-                create_time=datetime.datetime.now()
-            )
-            session.add(file)
-            session.commit()
+
             session.query(AtpProject) \
                 .filter(*[AtpProject.id == project_id, AtpProject.is_delete == 2]) \
                 .update({
@@ -486,7 +487,7 @@ async def upload_project_img(
                 AtpProject.update_time: datetime.datetime.now()
             })
             session.commit()
-        return BaseRes(data={'fileName': filename, 'url': 'http://localhost:8900/static/' + filename})
+        return BaseRes(data={'id': file.id, 'fileName': filename, 'url': 'http://localhost:8900/static/' + filename})
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))
