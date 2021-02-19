@@ -72,7 +72,7 @@ async def get_all_project(type: int = Query(...)) -> BaseRes:
                 file: AtpFileSystemFile = Db.select_by_primary_key(AtpFileSystemFile, project.img)
                 project.img = {
                     'id': file.id,
-                    'url': 'http://localhost:8900/static/' + file.name
+                    'url': get_settings().archive_host + file.name
                 }
             else:
                 project.img = {
@@ -103,7 +103,7 @@ async def get_project_id(id: int = Query(...)) -> BaseRes:
             file: AtpFileSystemFile = Db.select_by_primary_key(AtpFileSystemFile, project.img)
             project.img = {
                 'id': file.id,
-                'url': 'http://localhost:8900/static/' + file.name
+                'url': get_settings().archive_host + file.name
             }
         else:
             project.img = {
@@ -487,7 +487,12 @@ async def upload_project_img(
                 AtpProject.update_time: datetime.datetime.now()
             })
             session.commit()
-        return BaseRes(data={'id': file.id, 'fileName': filename, 'url': 'http://localhost:8900/static/' + filename})
+        return BaseRes(data={'id': file.id, 'fileName': filename, 'url': get_settings().archive_host
+
+
+
+
+                                                                         + filename})
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))

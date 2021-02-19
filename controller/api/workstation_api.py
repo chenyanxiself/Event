@@ -18,6 +18,7 @@ from models.request_model.project_reqm import *
 from copy import deepcopy
 from util.project_verify import verify_project_filed, verify_project_deleted, verify_project_member
 import controller.domain.project_case_domain as domain
+from config.settings import get_settings
 
 router = APIRouter()
 logger = logging.getLogger(API_WORKSTATION)
@@ -44,7 +45,7 @@ async def get_workstation_projects(token_user: TokenUser = Depends(auth_token)) 
                 file: AtpFileSystemFile = Db.select_by_primary_key(AtpFileSystemFile, project.img)
                 project.img = {
                     'id': file.id,
-                    'url': 'http://localhost:8900/static/' + file.name
+                    'url': get_settings().archive_host + file.name
                 }
             else:
                 project.img = {

@@ -478,7 +478,7 @@ async def upload_task_img(
             file_ids.append(file.id)
             task.img = json.dumps(file_ids)
         session.commit()
-        return BaseRes(data={'fileName': filename, 'id': file.id, 'url': 'http://localhost:8900/static/' + filename})
+        return BaseRes(data={'fileName': filename, 'id': file.id, 'url': get_settings().archive_host + filename})
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))
@@ -509,7 +509,7 @@ async def get_task_by_condition(
             img_list.append({
                 'id': i.id,
                 'name': i.name,
-                'url': 'http://localhost:8900/static/' + i.name
+                'url': get_settings().archive_host + i.name
             })
         task.follower = followers
         task.img = img_list

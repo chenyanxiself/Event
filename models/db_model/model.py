@@ -45,7 +45,7 @@ class AtpOverviewTask(Base):
     updator = Column(BigInteger, comment='更新人id')
     updateTime = Column(DateTime, comment='创建时间',name='update_time')
     isDelete = Column(TINYINT, server_default=text("'2'"),name='is_delete')
-    description = Column(String(300), comment='任务描述')
+    description = Column(Text, comment='任务描述')
     priority = Column(TINYINT, server_default=text("'3'"))
     follower = Column(Text)
     img = Column(Text)
