@@ -28,7 +28,8 @@ logger = logging.getLogger(API_WORKSTATION)
 async def get_workstation_projects(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
     try:
         project_list: List[AtpProject] = Db.select_by_condition(AtpProject,
-                                                                [AtpProject.type == 1, AtpProject.is_delete == 2])
+                                                                [AtpProject.type == 1, AtpProject.is_delete == 2],
+                                                                AtpProject.create_time.desc())
         parted_project_list = []
         for project in project_list:
             is_part_in = Db.select_by_condition(

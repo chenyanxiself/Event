@@ -114,14 +114,35 @@ async def get_task_by_condition(
     _, error = verify_project_member(token_user.user_id, project_id)
     if error:
         return error
+    session = Db.get_session()
     try:
-        Db.update_by_condition(AtpOverviewList, [AtpOverviewList.id == id], {
-            AtpOverviewList.isDelete: 1,
-            AtpOverviewList.updator: token_user.user_id,
-            AtpOverviewList.updateTime: datetime.datetime.now()
-        })
+        delete_item: AtpOverviewList = session.query(AtpOverviewList).get(id)
+        if delete_item:
+            delete_item.isDelete = 1
+            delete_item.updator = token_user.user_id,
+            delete_item.updateTime = datetime.datetime.now()
+            session.query(AtpOverviewList).filter(*[
+                AtpOverviewList.sort > delete_item.sort,
+                AtpOverviewList.isDelete == 2
+            ]).update(
+                {
+                    AtpOverviewList.sort: AtpOverviewList.sort - 1,
+                    AtpOverviewList.updator: token_user.user_id,
+                    AtpOverviewList.updateTime: datetime.datetime.now()
+                })
+            session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.listId == id,
+                AtpOverviewTask.isDelete == 2
+            ]).update(
+                {
+                    AtpOverviewTask.isDelete: 1,
+                    AtpOverviewTask.updator: token_user.user_id,
+                    AtpOverviewTask.updateTime: datetime.datetime.now()
+                })
+            session.commit()
         return BaseRes()
     except Exception as e:
+        session.rollback()
         logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
@@ -145,7 +166,10 @@ async def delete_task(
             delete_item.isDelete = 1
             delete_item.updator = token_user.user_id,
             delete_item.updateTime = datetime.datetime.now()
-            session.query(AtpOverviewTask).filter(AtpOverviewTask.sort > delete_item.sort).update(
+            session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.sort > delete_item.sort,
+                AtpOverviewTask.isDelete == 2
+            ]).update(
                 {
                     AtpOverviewTask.sort: AtpOverviewTask.sort - 1,
                     AtpOverviewTask.updator: token_user.user_id,
@@ -230,7 +254,7 @@ async def update_task(
 
 
 @router.post('/updateListSort/', response_model=BaseRes)
-async def update_task(
+async def update_list_sort(
         project_id: int = Body(..., embed=True),
         start_index: int = Body(..., embed=True),
         end_index: int = Body(..., embed=True),

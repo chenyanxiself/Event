@@ -65,7 +65,8 @@ async def get_all_project(type: int = Query(...)) -> BaseRes:
     try:
         project_list: List[AtpProject] = Db.select_by_condition(
             AtpProject,
-            [AtpProject.is_delete == 2, AtpProject.type == type]
+            [AtpProject.is_delete == 2, AtpProject.type == type],
+            AtpProject.create_time.desc()
         )
         for project in project_list:
             if project.img:
