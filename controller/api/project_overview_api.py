@@ -122,6 +122,7 @@ async def get_task_by_condition(
             delete_item.updator = token_user.user_id,
             delete_item.updateTime = datetime.datetime.now()
             session.query(AtpOverviewList).filter(*[
+                AtpOverviewList.projectId == delete_item.projectId,
                 AtpOverviewList.sort > delete_item.sort,
                 AtpOverviewList.isDelete == 2
             ]).update(
@@ -167,6 +168,8 @@ async def delete_task(
             delete_item.updator = token_user.user_id,
             delete_item.updateTime = datetime.datetime.now()
             session.query(AtpOverviewTask).filter(*[
+                AtpOverviewTask.projectId == delete_item.projectId,
+                AtpOverviewTask.listId == delete_item.listId,
                 AtpOverviewTask.sort > delete_item.sort,
                 AtpOverviewTask.isDelete == 2
             ]).update(
@@ -213,7 +216,9 @@ async def update_task(
             AtpOverviewList.isDelete == 2,
         ]
         Db.update_by_condition(AtpOverviewList, condition, {
-            AtpOverviewList.title: title
+            AtpOverviewList.title: title,
+            AtpOverviewList.updator: token_user.user_id,
+            AtpOverviewList.updateTime: datetime.datetime.now()
         })
         return BaseRes()
     except Exception as e:
@@ -241,7 +246,9 @@ async def update_task(
             AtpOverviewTask.id == task_id,
             AtpOverviewTask.isDelete == 2
         ]).update({
-            getattr(AtpOverviewTask, key): value
+            getattr(AtpOverviewTask, key): value,
+            AtpOverviewTask.updator: token_user.user_id,
+            AtpOverviewTask.updateTime: datetime.datetime.now()
         })
         session.commit()
         return BaseRes()
@@ -488,15 +495,6 @@ async def upload_task_img(
         session.add(file)
         session.commit()
         if task_id:
-            # Db.update_by_condition(
-            #     AtpOverviewTask,
-            #     [AtpOverviewTask.project_id == project_id, AtpOverviewTask.is_delete == 2],
-            #     {
-            #         AtpProject.url: 'http://localhost:8900/static/' + filename,
-            #         AtpOverviewTask.updator: token_user.user_id,
-            #         AtpOverviewTask.update_time: datetime.datetime.now()
-            #     }
-            # )
             task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
             file_ids = json.loads(task.img) if task.img else []
             file_ids.append(file.id)
