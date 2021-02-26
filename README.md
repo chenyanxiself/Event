@@ -3,4 +3,5 @@
    
 # 部署
     pip install -r requirements.ext
+    本地启动修改config/local.py中数据库配置
     python run.py
