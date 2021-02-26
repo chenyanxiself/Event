@@ -11,3 +11,4 @@ pymysql==0.10.1
 requests==2.24.0
 bcrypt==3.2.0
 cryptography==3.2.1
+sqlalchemy-utils==0.36.8

@@ -4,8 +4,10 @@
 # @Author  : yxChen
 
 import os
+
 os.environ['FASTAPI_ENV'] = 'local'
 from config.settings import get_settings
+
 if not os.path.exists(get_settings().static_path):
     os.makedirs(get_settings().static_path)
 
@@ -23,8 +25,8 @@ from controller.api.project_overview_api import router as overview_route
 
 def create_app() -> FastAPI:
     app = FastAPI()
-    app.mount('/static',StaticFiles(directory='./static'),name='static')
-    app.debug=True
+    app.mount('/static', StaticFiles(directory='./static'), name='static')
+    app.debug = True
 
     app.add_middleware(
         CORSMiddleware,
@@ -70,12 +72,25 @@ def create_app() -> FastAPI:
     )
     return app
 
+
 def start():
     import uvicorn
+    from models.db_model.db import engine,Db
+    from models.db_model.model import Base,SysUser
+    from sqlalchemy_utils import database_exists, create_database
+    if not database_exists(engine.url):
+        create_database(engine.url)
+        Base.metadata.create_all(engine)
+        Db.insert(SysUser(
+            name='admin',
+            password='$2b$12$CzZv68jyas1POYLBRx14fecZhj4mBNA2da9JqdVRPIvT7r4JBiUJm',
+            cname='管理员',
+        ))
     app = create_app()
     if not os.path.exists(get_settings().static_path):
         os.mkdir(get_settings().static_path)
-    uvicorn.run(app,**get_settings().config)
+    uvicorn.run(app, **get_settings().config)
+
 
 if __name__ == '__main__':
     start()

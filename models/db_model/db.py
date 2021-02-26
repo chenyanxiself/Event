@@ -5,16 +5,15 @@
 
 
 import sqlalchemy
-from sqlalchemy.orm import sessionmaker,Session
+from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from typing import List
 from sqlalchemy import func
 from config.settings import get_settings
 
-# DATABASE_URL = "mysql+pymysql://root:root@localhost:3306/auto_test_frame"
 mysql_config = get_settings().mysql_config
 DATABASE_URL = f"mysql+pymysql://{mysql_config['username']}:{mysql_config['password']}@{mysql_config['host']}:{mysql_config['port']}/{mysql_config['database']}"
-engine = sqlalchemy.create_engine(DATABASE_URL,pool_recycle=60)
+engine = sqlalchemy.create_engine(DATABASE_URL, pool_recycle=60)
 SessionLocal = sessionmaker(autoflush=False, autocommit=False, bind=engine)
 Base = declarative_base()
 
@@ -69,7 +68,6 @@ class Db:
         session.commit()
         session.close()
 
-
     @classmethod
     def get_session(cls) -> Session:
         return SessionLocal()
@@ -77,6 +75,7 @@ class Db:
 
 if __name__ == '__main__':
     from models.db_model.model import *
+
     session = Db.get_session()
     all_relation: List[AtpProjectApiSuiteCaseRelation] = session.query(AtpProjectApiSuiteCaseRelation).filter(
         # AtpProjectApiSuiteCaseRelation.is_delete == 2,

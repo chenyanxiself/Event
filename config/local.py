@@ -29,7 +29,7 @@ class Setting(BaseSetting):
                 "file": {
                     "formatter": "default",
                     "class": "logging.handlers.RotatingFileHandler",
-                    "filename": "./logconfig1.log",
+                    "filename": "./log.txt",
                     "level": "INFO"
                 },
                 "default": {
