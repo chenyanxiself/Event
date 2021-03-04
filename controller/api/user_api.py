@@ -11,10 +11,11 @@ from consts.log_name import API_LOGIN
 from models.response_model.base_resm import BaseRes
 from models.request_model.user_reqm import LoginUser, AddUser, UpdatePassword, UpdateUserInfo
 from util.encrypt_util import verify_password, get_password_hash
-from models.db_model.model import SysUser
+from models.db_model.model import *
 from models.db_model.db import Db
 from datetime import datetime
 from typing import List
+import traceback
 
 router = APIRouter()
 logger = logging.getLogger(API_LOGIN)
@@ -131,3 +132,31 @@ async def update_user_info(data: UpdateUserInfo, token_user: TokenUser = Depends
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error='更新用户信息失败')
+
+
+@router.get('/getMenuAuth/', response_model=BaseRes)
+async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        user_role_list: List[SysUserRole] = session.query(SysUserRole).filter(*[
+            SysUserRole.is_delete == 2,
+            SysUserRole.user_id == token_user.user_id
+        ]).all()
+        if len(user_role_list) == 0:
+            return BaseRes(data=[])
+        user_role = user_role_list[0]
+        menu_map_list: List[SysRoleMenu] = session.query(SysRoleMenu).filter(*[
+            SysRoleMenu.is_delete == 2,
+            SysRoleMenu.role_id == user_role.id
+        ]).all()
+        menus_ids = []
+        for menu_map in menu_map_list:
+            menus_ids.append(menu_map)
+        menus: List[SysMenu] = session.query(SysMenu).filter(*[
+            SysMenu.is_delete == 2,
+            SysMenu.id.in_(menus_ids)
+        ])
+        return BaseRes(data=menus)
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        return BaseRes(status=0, error=e)

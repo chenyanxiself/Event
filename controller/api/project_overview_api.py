@@ -37,16 +37,16 @@ async def get_task_by_condition(
         return error
     try:
         task_list_condition: list = [
-            AtpOverviewList.isDelete == 2,
-            AtpOverviewList.projectId == project_id
+            AtpOverviewList.is_delete == 2,
+            AtpOverviewList.project_id == project_id
         ]
         task_list: List[AtpOverviewList] = Db.select_by_condition(AtpOverviewList, task_list_condition,
                                                                   AtpOverviewList.sort)
         for l in task_list:
             task_condition: list = [
-                AtpOverviewTask.isDelete == 2,
-                AtpOverviewTask.projectId == project_id,
-                AtpOverviewTask.listId == l.id
+                AtpOverviewTask.is_delete == 2,
+                AtpOverviewTask.project_id == project_id,
+                AtpOverviewTask.list_id == l.id
             ]
             if keyword:
                 task_condition.append(AtpOverviewTask.title.like(f'%{keyword}%'))
@@ -85,13 +85,13 @@ async def get_project_progress(
         return error
     try:
         finish_count = Db.select_count_by_condition(AtpOverviewTask.id, [
-            AtpOverviewTask.isDelete == 2,
-            AtpOverviewTask.projectId == project_id,
+            AtpOverviewTask.is_delete == 2,
+            AtpOverviewTask.project_id == project_id,
             AtpOverviewTask.status == 1
         ])
         total_count = Db.select_count_by_condition(AtpOverviewTask.id, [
-            AtpOverviewTask.isDelete == 2,
-            AtpOverviewTask.projectId == project_id,
+            AtpOverviewTask.is_delete == 2,
+            AtpOverviewTask.project_id == project_id,
         ])
         return BaseRes(data={
             'total': total_count,
@@ -118,27 +118,27 @@ async def get_task_by_condition(
     try:
         delete_item: AtpOverviewList = session.query(AtpOverviewList).get(id)
         if delete_item:
-            delete_item.isDelete = 1
+            delete_item.is_delete = 1
             delete_item.updator = token_user.user_id,
-            delete_item.updateTime = datetime.datetime.now()
+            delete_item.update_time = datetime.datetime.now()
             session.query(AtpOverviewList).filter(*[
-                AtpOverviewList.projectId == delete_item.projectId,
+                AtpOverviewList.project_id == delete_item.project_id,
                 AtpOverviewList.sort > delete_item.sort,
-                AtpOverviewList.isDelete == 2
+                AtpOverviewList.is_delete == 2
             ]).update(
                 {
                     AtpOverviewList.sort: AtpOverviewList.sort - 1,
                     AtpOverviewList.updator: token_user.user_id,
-                    AtpOverviewList.updateTime: datetime.datetime.now()
+                    AtpOverviewList.update_time: datetime.datetime.now()
                 })
             session.query(AtpOverviewTask).filter(*[
-                AtpOverviewTask.listId == id,
-                AtpOverviewTask.isDelete == 2
+                AtpOverviewTask.list_id == id,
+                AtpOverviewTask.is_delete == 2
             ]).update(
                 {
-                    AtpOverviewTask.isDelete: 1,
+                    AtpOverviewTask.is_delete: 1,
                     AtpOverviewTask.updator: token_user.user_id,
-                    AtpOverviewTask.updateTime: datetime.datetime.now()
+                    AtpOverviewTask.update_time: datetime.datetime.now()
                 })
             session.commit()
         return BaseRes()
@@ -164,19 +164,19 @@ async def delete_task(
     try:
         delete_item: AtpOverviewTask = session.query(AtpOverviewTask).get(id)
         if delete_item:
-            delete_item.isDelete = 1
+            delete_item.is_delete = 1
             delete_item.updator = token_user.user_id,
-            delete_item.updateTime = datetime.datetime.now()
+            delete_item.update_time = datetime.datetime.now()
             session.query(AtpOverviewTask).filter(*[
-                AtpOverviewTask.projectId == delete_item.projectId,
-                AtpOverviewTask.listId == delete_item.listId,
+                AtpOverviewTask.project_id == delete_item.project_id,
+                AtpOverviewTask.list_id == delete_item.list_id,
                 AtpOverviewTask.sort > delete_item.sort,
-                AtpOverviewTask.isDelete == 2
+                AtpOverviewTask.is_delete == 2
             ]).update(
                 {
                     AtpOverviewTask.sort: AtpOverviewTask.sort - 1,
                     AtpOverviewTask.updator: token_user.user_id,
-                    AtpOverviewTask.updateTime: datetime.datetime.now()
+                    AtpOverviewTask.update_time: datetime.datetime.now()
                 })
             session.commit()
         return BaseRes()
@@ -203,8 +203,8 @@ async def update_task(
         return error
     try:
         exists_condition = [
-            AtpOverviewList.isDelete == 2,
-            AtpOverviewList.projectId == project_id,
+            AtpOverviewList.is_delete == 2,
+            AtpOverviewList.project_id == project_id,
             AtpOverviewList.title == title,
             AtpOverviewList.id != list_id
         ]
@@ -213,12 +213,12 @@ async def update_task(
             return BaseRes(status=0, error='任务栏标题已存在')
         condition = [
             AtpOverviewList.id == list_id,
-            AtpOverviewList.isDelete == 2,
+            AtpOverviewList.is_delete == 2,
         ]
         Db.update_by_condition(AtpOverviewList, condition, {
             AtpOverviewList.title: title,
             AtpOverviewList.updator: token_user.user_id,
-            AtpOverviewList.updateTime: datetime.datetime.now()
+            AtpOverviewList.update_time: datetime.datetime.now()
         })
         return BaseRes()
     except Exception as e:
@@ -244,11 +244,11 @@ async def update_task(
     try:
         session.query(AtpOverviewTask).filter(*[
             AtpOverviewTask.id == task_id,
-            AtpOverviewTask.isDelete == 2
+            AtpOverviewTask.is_delete == 2
         ]).update({
             getattr(AtpOverviewTask, key): value,
             AtpOverviewTask.updator: token_user.user_id,
-            AtpOverviewTask.updateTime: datetime.datetime.now()
+            AtpOverviewTask.update_time: datetime.datetime.now()
         })
         session.commit()
         return BaseRes()
@@ -276,8 +276,8 @@ async def update_list_sort(
     session = Db.get_session()
     try:
         target_list_columns: List[AtpOverviewList] = session.query(AtpOverviewList).filter(*[
-            AtpOverviewList.isDelete == 2,
-            AtpOverviewList.projectId == project_id,
+            AtpOverviewList.is_delete == 2,
+            AtpOverviewList.project_id == project_id,
         ]).order_by(AtpOverviewList.sort).all()
         new_sort = target_list_columns[end_index].sort
         if start_index < end_index:
@@ -320,9 +320,9 @@ async def update_task_sort(
             return BaseRes()
         if start_list_id == end_list_id:
             target_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
-                AtpOverviewTask.isDelete == 2,
-                AtpOverviewList.projectId == project_id,
-                AtpOverviewTask.listId == start_list_id
+                AtpOverviewTask.is_delete == 2,
+                AtpOverviewList.project_id == project_id,
+                AtpOverviewTask.list_id == start_list_id
             ]).order_by(AtpOverviewTask.sort).all()
             new_sort = target_task_columns[end_index].sort
             if start_index < end_index:
@@ -334,14 +334,14 @@ async def update_task_sort(
             target_task_columns[start_index].sort = new_sort
         else:
             start_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
-                AtpOverviewTask.isDelete == 2,
-                AtpOverviewList.projectId == project_id,
-                AtpOverviewTask.listId == start_list_id
+                AtpOverviewTask.is_delete == 2,
+                AtpOverviewList.project_id == project_id,
+                AtpOverviewTask.list_id == start_list_id
             ]).order_by(AtpOverviewTask.sort).all()
             end_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
-                AtpOverviewTask.isDelete == 2,
-                AtpOverviewList.projectId == project_id,
-                AtpOverviewTask.listId == end_list_id
+                AtpOverviewTask.is_delete == 2,
+                AtpOverviewList.project_id == project_id,
+                AtpOverviewTask.list_id == end_list_id
             ]).order_by(AtpOverviewTask.sort).all()
             start_task = start_task_columns[start_index]
             for i in start_task_columns[start_index:]:
@@ -356,7 +356,7 @@ async def update_task_sort(
             for i in end_task_columns[end_index:]:
                 i.sort += 1
             start_task.sort = new_sort
-            start_task.listId = end_list.id
+            start_task.list_id = end_list.id
         session.commit()
         return BaseRes()
     except Exception as e:
@@ -382,16 +382,16 @@ async def create_list(
     session = Db.get_session()
     try:
         exists_condition = [
-            AtpOverviewList.isDelete == 2,
-            AtpOverviewList.projectId == project_id,
+            AtpOverviewList.is_delete == 2,
+            AtpOverviewList.project_id == project_id,
             AtpOverviewList.title == title
         ]
         count = session.query(func.count(AtpOverviewList.id)).filter(*exists_condition).all()[0][0]
         if count != 0:
             return BaseRes(status=0, error='任务栏标题已存在')
         max_sort_item = session.query(func.max(AtpOverviewList.sort)).filter(*[
-            AtpOverviewList.isDelete == 2,
-            AtpOverviewList.projectId == project_id
+            AtpOverviewList.is_delete == 2,
+            AtpOverviewList.project_id == project_id
         ]).first()
         if max_sort_item[0]:
             max_sort = max_sort_item[0] + 1
@@ -399,11 +399,11 @@ async def create_list(
             max_sort = 1
         session.add(AtpOverviewList(
             title=title,
-            projectId=project_id,
+            project_id=project_id,
             sort=max_sort,
             creator=token_user.user_id,
-            createTime=datetime.datetime.now(),
-            isDelete=2
+            create_time=datetime.datetime.now(),
+            is_delete=2
         ))
         session.commit()
         return BaseRes()
@@ -435,9 +435,9 @@ async def create_list(
     session = Db.get_session()
     try:
         max_sort_item = session.query(func.max(AtpOverviewTask.sort)).filter(*[
-            AtpOverviewTask.isDelete == 2,
-            AtpOverviewTask.projectId == project_id,
-            AtpOverviewTask.listId == list_id
+            AtpOverviewTask.is_delete == 2,
+            AtpOverviewTask.project_id == project_id,
+            AtpOverviewTask.list_id == list_id
         ]).first()
         if max_sort_item[0]:
             max_sort = max_sort_item[0] + 1
@@ -445,17 +445,17 @@ async def create_list(
             max_sort = 1
         session.add(AtpOverviewTask(
             title=title,
-            projectId=project_id,
+            project_id=project_id,
             sort=max_sort,
             description=description,
             priority=priority,
             follower=json.dumps(follower),
             img=json.dumps(attachment),
-            listId=list_id,
+            list_id=list_id,
             status=2,
             creator=token_user.user_id,
-            createTime=datetime.datetime.now(),
-            isDelete=2
+            create_time=datetime.datetime.now(),
+            is_delete=2
         ))
         session.commit()
         return BaseRes()

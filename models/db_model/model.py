@@ -1,10 +1,11 @@
 # coding: utf-8
-from sqlalchemy import BigInteger, Column, DateTime, Integer, String, text, Text
-from sqlalchemy.dialects.mysql import TINYINT, VARCHAR
+from sqlalchemy import BigInteger, Column, DateTime, Integer, String, Text, text
+from sqlalchemy.dialects.mysql import LONGTEXT, TINYINT, VARCHAR
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 metadata = Base.metadata
+
 
 class AtpFileSystemFile(Base):
     __tablename__ = 'atp_file_system_file'
@@ -17,18 +18,19 @@ class AtpFileSystemFile(Base):
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
 
+
 class AtpOverviewList(Base):
     __tablename__ = 'atp_overview_list'
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String(100), nullable=False, comment='任务列标题')
-    projectId = Column(BigInteger, name='project_id', nullable=False, comment='项目id')
+    project_id = Column(BigInteger, nullable=False, comment='项目id')
     sort = Column(Integer, nullable=False, comment='排序字段')
     creator = Column(BigInteger, comment='创建人id')
-    createTime = Column(DateTime, name='create_time', comment='创建时间')
+    create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
-    updateTime = Column(DateTime, name='update_time', comment='创建时间')
-    isDelete = Column(TINYINT, name='is_delete', server_default=text("'2'"))
+    update_time = Column(DateTime, comment='创建时间')
+    is_delete = Column(TINYINT, server_default=text("'2'"))
 
 
 class AtpOverviewTask(Base):
@@ -36,19 +38,19 @@ class AtpOverviewTask(Base):
 
     id = Column(BigInteger, primary_key=True)
     title = Column(String(100), nullable=False, comment='任务标题')
-    listId = Column(BigInteger, name='list_id', nullable=False, comment='任务列id')
-    projectId = Column(BigInteger, name='project_id', nullable=False, comment='项目id')
+    list_id = Column(BigInteger, nullable=False, comment='任务列id')
+    project_id = Column(BigInteger, nullable=False, comment='项目id')
     status = Column(TINYINT, nullable=False, comment='0 未完成 1已完成')
     sort = Column(Integer, nullable=False, comment='排序字段')
     creator = Column(BigInteger, comment='创建人id')
-    createTime = Column(DateTime, name='create_time', comment='创建时间')
+    create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
-    updateTime = Column(DateTime, comment='创建时间',name='update_time')
-    isDelete = Column(TINYINT, server_default=text("'2'"),name='is_delete')
-    description = Column(Text, comment='任务描述')
+    update_time = Column(DateTime, comment='创建时间')
+    img = Column(Text)
     priority = Column(TINYINT, server_default=text("'3'"))
     follower = Column(Text)
-    img = Column(Text)
+    is_delete = Column(TINYINT, server_default=text("'2'"))
+    description = Column(LONGTEXT)
 
 
 class AtpProject(Base):
@@ -58,7 +60,7 @@ class AtpProject(Base):
     name = Column(VARCHAR(50), nullable=False, comment='项目名称')
     remark = Column(VARCHAR(200), comment='项目简介')
     type = Column(TINYINT, server_default=text("'1'"), comment='项目类型 1 进行中 0 已归档')
-    img = Column(BigInteger, comment='项目封面')
+    img = Column(VARCHAR(500), comment='项目封面')
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
@@ -226,7 +228,11 @@ class SysMenu(Base):
     __tablename__ = 'sys_menus'
 
     id = Column(BigInteger, primary_key=True)
+    name = Column(String(20), nullable=False, comment='菜单名')
     menu_path = Column(VARCHAR(50), nullable=False, comment='菜单路径')
+    menu_reg = Column(String(50), nullable=False, comment='菜单正则')
+    icon = Column(String(10), comment='icon映射名')
+    parent_id = Column(Integer, comment='父级菜单')
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
@@ -286,9 +292,3 @@ class SysUserRole(Base):
     updator = Column(BigInteger, comment='更新人id')
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
-
-
-if __name__ == '__main__':
-    from models.db_model.db import engine
-
-    Base.metadata.create_all(engine)
