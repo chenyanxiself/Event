@@ -115,7 +115,7 @@ def db_init():
             user_manage_menu = SysMenu(
                 name='用户管理',
                 menu_path='/manage/user',
-                menu_reg='^^\/manage\/user\/?&',
+                menu_reg='^\/manage\/user\/?$',
                 parent_id=manage_menu.id
             )
             session.add(user_manage_menu)

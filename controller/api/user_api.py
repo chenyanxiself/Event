@@ -151,12 +151,22 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
         ]).all()
         menus_ids = []
         for menu_map in menu_map_list:
-            menus_ids.append(menu_map)
+            menus_ids.append(menu_map.id)
         menus: List[SysMenu] = session.query(SysMenu).filter(*[
             SysMenu.is_delete == 2,
             SysMenu.id.in_(menus_ids)
-        ])
-        return BaseRes(data=menus)
+        ]).all()
+        return_value = []
+        for m in menus:
+            return_value.append({
+                'id': m.id,
+                'name': m.name,
+                'regExp': m.menu_reg,
+                'path': m.menu_path,
+                'parentId': m.parent_id,
+                'icon': m.icon
+            })
+        return BaseRes(data=return_value)
     except Exception as e:
         logger.warning(traceback.format_exc())
-        return BaseRes(status=0, error=e)
+        return BaseRes(status=0, error=str(e))
