@@ -182,8 +182,8 @@ async def delete_user(user_id: int = Body(...), token_user: TokenUser = Depends(
             SysUser.is_delete == 2
         ]).update({
             SysUser.is_delete: 1,
-            SysUserRole.updator: token_user.user_id,
-            SysUserRole.update_time: datetime.now()
+            SysUser.updator: token_user.user_id,
+            SysUser.update_time: datetime.now()
         })
         session.commit()
         return BaseRes(data='success')
