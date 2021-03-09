@@ -66,27 +66,38 @@ async def get_all_user() -> BaseRes:
         data = {'userList': res_user_list}
         return BaseRes(data=data)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
 @router.post('/createUser/', response_model=BaseRes)
 async def add_user(user: AddUser, token_user: TokenUser = Depends(auth_token)) -> BaseRes:
     hash_paaword = get_password_hash(user.password)
-    new_user = SysUser(
-        name=user.user_name,
-        password=hash_paaword,
-        cname=user.user_cname,
-        email=user.email,
-        phone=user.phone,
-        creator=token_user.user_id,
-        create_time=datetime.now()
-    )
+    session = Db.get_session()
     try:
-        Db.insert(new_user)
+        new_user = SysUser(
+            name=user.user_name,
+            password=hash_paaword,
+            cname=user.user_cname,
+            email=user.email,
+            phone=user.phone,
+            creator=token_user.user_id,
+            create_time=datetime.now()
+        )
+        session.add(new_user)
+        session.commit()
+        for role_id in user.role_ids:
+            session.add(SysUserRole(
+                user_id=new_user.id,
+                role_id=role_id,
+                creator=token_user.user_id,
+                create_time=datetime.now()
+            ))
+        session.commit()
         return BaseRes(data='success')
     except Exception as e:
-        logger.error(e)
+        session.rollback()
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=e)
 
 
@@ -114,24 +125,72 @@ async def update_password(data: UpdatePassword, token_user: TokenUser = Depends(
 
 @router.post('/updateUserInfo', response_model=BaseRes)
 async def update_user_info(data: UpdateUserInfo, token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
     try:
-        Db.update_by_condition(
-            SysUser,
-            [
-                SysUser.id == token_user.user_id,
-                SysUser.is_delete == '2'
-            ],
-            {
-                SysUser.cname: data.user_cname,
-                SysUser.email: data.email,
-                SysUser.phone: data.phone,
-                SysUser.updator: token_user.user_id,
-                SysUser.update_time: datetime.now()
-            })
+        session.query(SysUser).filter(*[
+            SysUser.id == data.user_id,
+            SysUser.is_delete == 2
+        ]).update({
+            SysUser.cname: data.user_cname,
+            SysUser.email: data.email,
+            SysUser.phone: data.phone,
+            SysUser.updator: token_user.user_id,
+            SysUser.update_time: datetime.now()
+        })
+        if data.role_ids is not None:
+            session.query(SysUserRole).filter(*[
+                SysUserRole.user_id == data.user_id,
+                SysUserRole.role_id.notin_(data.role_ids)
+            ]).update({
+                SysUserRole.is_delete: 1,
+                SysUserRole.updator: token_user.user_id,
+                SysUserRole.update_time: datetime.now()
+            }, synchronize_session=False)
+            session.query(SysUserRole).filter(*[
+                SysUserRole.user_id == data.user_id,
+                SysUserRole.role_id.in_(data.role_ids)
+            ]).update({
+                SysUserRole.is_delete: 2,
+                SysUserRole.updator: token_user.user_id,
+                SysUserRole.update_time: datetime.now()
+            }, synchronize_session=False)
+            temps: List[SysUserRole] = session.query(SysUserRole).filter(*[
+                SysUserRole.user_id == data.user_id,
+                SysUserRole.role_id.in_(data.role_ids)
+            ]).all()
+            already_role_ids = set([x.role_id for x in temps])
+            gap_role_ids = set(data.role_ids) - already_role_ids
+            for i in gap_role_ids:
+                session.add(SysUserRole(
+                    user_id=data.user_id,
+                    role_id=i
+                ))
+        session.commit()
         return BaseRes()
     except Exception as e:
-        logger.error(e)
-        return BaseRes(status=0, error='更新用户信息失败')
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
+@router.post('/deleteUser/', response_model=BaseRes)
+async def delete_user(user_id: int = Body(...), token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        session.query(SysUser).filter(*[
+            SysUser.id == user_id,
+            SysUser.is_delete == 2
+        ]).update({
+            SysUser.is_delete: 1,
+            SysUserRole.updator: token_user.user_id,
+            SysUserRole.update_time: datetime.now()
+        })
+        session.commit()
+        return BaseRes(data='success')
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=e)
 
 
 @router.get('/getMenuAuth/', response_model=BaseRes)
@@ -144,14 +203,14 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
         ]).all()
         if len(user_role_list) == 0:
             return BaseRes(data=[])
-        user_role = user_role_list[0]
+        user_role_id_list = [x.id for x in user_role_list]
         menu_map_list: List[SysRoleMenu] = session.query(SysRoleMenu).filter(*[
             SysRoleMenu.is_delete == 2,
-            SysRoleMenu.role_id == user_role.id
+            SysRoleMenu.role_id.in_(user_role_id_list)
         ]).all()
-        menus_ids = []
+        menus_ids = set()
         for menu_map in menu_map_list:
-            menus_ids.append(menu_map.id)
+            menus_ids.add(menu_map.id)
         menus: List[SysMenu] = session.query(SysMenu).filter(*[
             SysMenu.is_delete == 2,
             SysMenu.id.in_(menus_ids)

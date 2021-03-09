@@ -5,25 +5,36 @@
 
 from pydantic import BaseModel
 from fastapi import Body
+from typing import List
+
 
 class TokenUser(BaseModel):
     user_id: int
     user_cname: str
 
-class LoginUser(BaseModel):
-    user_name:str
-    password:str=Body(...)
 
-class AddUser(LoginUser):
-    user_cname:str
-    email:str = ''
-    phone:str = ''
+class LoginUser(BaseModel):
+    user_name: str
+    password: str = Body(...)
+
+
+class AddUser(BaseModel):
+    user_name: str = Body(...)
+    password: str = Body(...)
+    user_cname: str = Body(...)
+    email: str = Body(None)
+    phone: str = Body(None)
+    role_ids: List[int] = Body(None)
+
 
 class UpdatePassword(BaseModel):
-    old_password:str=Body(...)
-    new_password:str=Body(...)
+    old_password: str = Body(...)
+    new_password: str = Body(...)
+
 
 class UpdateUserInfo(BaseModel):
-    user_cname:str=Body(...)
-    email:str=Body(None)
-    phone:str=Body(None)
+    user_id: int = Body(...)
+    user_cname: str = Body(...)
+    email: str = Body(None)
+    phone: str = Body(None)
+    role_ids: List[int] = Body(None)
