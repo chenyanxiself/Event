@@ -229,3 +229,16 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
     except Exception as e:
         logger.warning(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getAllRoleList/', response_model=BaseRes)
+async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        role_list: List[SysRole] = session.query(SysUser).filter(*[
+            SysRole.is_delete == 2
+        ]).all()
+        return BaseRes(data=role_list)
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
