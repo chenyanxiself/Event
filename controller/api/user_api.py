@@ -235,7 +235,7 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
 async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
     session = Db.get_session()
     try:
-        role_list: List[SysRole] = session.query(SysUser).filter(*[
+        role_list: List[SysRole] = session.query(SysRole).filter(*[
             SysRole.is_delete == 2
         ]).all()
         return BaseRes(data=role_list)
