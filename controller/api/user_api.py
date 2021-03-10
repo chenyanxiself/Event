@@ -94,7 +94,7 @@ async def add_user(user: AddUser, token_user: TokenUser = Depends(auth_token)) -
                 create_time=datetime.now()
             ))
         session.commit()
-        return BaseRes(data='success')
+        return BaseRes(data=new_user.id)
     except Exception as e:
         session.rollback()
         logger.error(traceback.format_exc())
@@ -174,7 +174,7 @@ async def update_user_info(data: UpdateUserInfo, token_user: TokenUser = Depends
 
 
 @router.post('/deleteUser/', response_model=BaseRes)
-async def delete_user(user_id: int = Body(...), token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+async def delete_user(user_id: int = Body(..., embed=True), token_user: TokenUser = Depends(auth_token)) -> BaseRes:
     session = Db.get_session()
     try:
         session.query(SysUser).filter(*[
@@ -238,7 +238,60 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
         role_list: List[SysRole] = session.query(SysRole).filter(*[
             SysRole.is_delete == 2
         ]).all()
-        return BaseRes(data=role_list)
+        return_data = []
+        for role in role_list:
+            role_menu_map: List[SysRoleMenu] = session.query(SysRoleMenu).filter(*[
+                SysRoleMenu.is_delete == 2,
+                SysRoleMenu.role_id == role.id
+            ]).all()
+            menu_ids = [x.menu_id for x in role_menu_map]
+            return_data.append({
+                'id': role.id,
+                'role_name': role.role_name,
+                'menu_list': menu_ids
+            })
+        return BaseRes(data=return_data)
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getAllUserRole/', response_model=BaseRes)
+async def get_all_user_roll(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        user_list: List[SysUser] = session.query(SysUser).filter(*[
+            SysUser.is_delete == 2
+        ]).all()
+        return_data = []
+        for user in user_list:
+            user_roll_map: List[SysUserRole] = session.query(SysUserRole).filter(*[
+                SysUserRole.is_delete == 2,
+                SysUserRole.user_id == user.id
+            ]).all()
+            roll_ids = [x.role_id for x in user_roll_map]
+            return_data.append({
+                'user_id': user.id,
+                'user_name': user.name,
+                'user_cname': user.cname,
+                'user_phone': user.phone,
+                'user_email': user.email,
+                'role_ids': roll_ids
+            })
+        return BaseRes(data=return_data)
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getAllMenu/', response_model=BaseRes)
+async def get_all_menu(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        menu_list: List[SysMenu] = session.query(SysMenu).filter(*[
+            SysRole.is_delete == 2
+        ]).all()
+        return BaseRes(data=menu_list)
     except Exception as e:
         logger.warning(traceback.format_exc())
         return BaseRes(status=0, error=str(e))

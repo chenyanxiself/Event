@@ -119,6 +119,13 @@ def db_init():
                 parent_id=manage_menu.id
             )
             session.add(user_manage_menu)
+            role_manage_menu = SysMenu(
+                name='角色管理',
+                menu_path='/manage/role',
+                menu_reg='^\/manage\/role\/?$',
+                parent_id=manage_menu.id
+            )
+            session.add(role_manage_menu)
             admin_role = SysRole(
                 role_name='管理员',
             )
@@ -143,6 +150,10 @@ def db_init():
             session.add(SysRoleMenu(
                 role_id=admin_role.id,
                 menu_id=user_manage_menu.id
+            ))
+            session.add(SysRoleMenu(
+                role_id=admin_role.id,
+                menu_id=role_manage_menu.id
             ))
             session.commit()
         except Exception as e:
