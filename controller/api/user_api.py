@@ -16,6 +16,7 @@ from models.db_model.db import Db
 from datetime import datetime
 from typing import List
 import traceback
+from sqlalchemy import distinct
 
 router = APIRouter()
 logger = logging.getLogger(API_LOGIN)
@@ -203,14 +204,14 @@ async def get_current_user(token_user: TokenUser = Depends(auth_token)) -> BaseR
         ]).all()
         if len(user_role_list) == 0:
             return BaseRes(data=[])
-        user_role_id_list = [x.id for x in user_role_list]
-        menu_map_list: List[SysRoleMenu] = session.query(SysRoleMenu).filter(*[
+        user_role_id_list = [x.role_id for x in user_role_list]
+        menu_map_list: List[tuple] = session.query(distinct(SysRoleMenu.menu_id)).filter(*[
             SysRoleMenu.is_delete == 2,
             SysRoleMenu.role_id.in_(user_role_id_list)
         ]).all()
         menus_ids = set()
         for menu_map in menu_map_list:
-            menus_ids.add(menu_map.id)
+            menus_ids.add(menu_map[0])
         menus: List[SysMenu] = session.query(SysMenu).filter(*[
             SysMenu.is_delete == 2,
             SysMenu.id.in_(menus_ids)
@@ -295,3 +296,105 @@ async def get_all_menu(token_user: TokenUser = Depends(auth_token)) -> BaseRes:
     except Exception as e:
         logger.warning(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
+
+
+@router.post('/createRole/', response_model=BaseRes)
+async def create_role(
+        name: str = Body(..., embed=True),
+        menu_list: List[int] = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    session = Db.get_session()
+    try:
+        new_role = SysRole(
+            role_name=name,
+            creator=token_user.user_id,
+            create_time=datetime.now()
+        )
+        session.add(new_role)
+        session.commit()
+        for menu_id in menu_list:
+            session.add(SysRoleMenu(
+                menu_id=menu_id,
+                role_id=new_role.id,
+                creator=token_user.user_id,
+                create_time=datetime.now()
+            ))
+        session.commit()
+        return BaseRes(data=new_role.id)
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=e)
+
+
+@router.post('/updateRole', response_model=BaseRes)
+async def update_role(
+        id: int = Body(..., embed=True),
+        name: str = Body(..., embed=True),
+        menu_list: List[int] = Body(..., embed=True),
+        token_user: TokenUser = Depends(auth_token)
+) -> BaseRes:
+    session = Db.get_session()
+    try:
+        session.query(SysRole).filter(*[
+            SysRole.id == id,
+            SysRole.is_delete == 2
+        ]).update({
+            SysRole.role_name: name,
+            SysRole.updator: token_user.user_id,
+            SysRole.update_time: datetime.now()
+        })
+        session.query(SysRoleMenu).filter(*[
+            SysRoleMenu.role_id == id,
+            SysRoleMenu.menu_id.notin_(menu_list)
+        ]).update({
+            SysRoleMenu.is_delete: 1,
+            SysRoleMenu.updator: token_user.user_id,
+            SysRoleMenu.update_time: datetime.now()
+        }, synchronize_session=False)
+        session.query(SysRoleMenu).filter(*[
+            SysRoleMenu.role_id == id,
+            SysRoleMenu.menu_id.in_(menu_list)
+        ]).update({
+            SysRoleMenu.is_delete: 2,
+            SysRoleMenu.updator: token_user.user_id,
+            SysRoleMenu.update_time: datetime.now()
+        }, synchronize_session=False)
+        temps: List[SysRoleMenu] = session.query(SysRoleMenu).filter(*[
+            SysRoleMenu.role_id == id,
+            SysRoleMenu.menu_id.in_(menu_list)
+        ]).all()
+        already_menu_ids = set([x.menu_id for x in temps])
+        gap_menu_ids = set(menu_list) - already_menu_ids
+        for i in gap_menu_ids:
+            session.add(SysRoleMenu(
+                menu_id=i,
+                role_id=id
+            ))
+        session.commit()
+        return BaseRes()
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=str(e))
+
+
+@router.post('/deleteRole/', response_model=BaseRes)
+async def delete_role(id: int = Body(..., embed=True), token_user: TokenUser = Depends(auth_token)) -> BaseRes:
+    session = Db.get_session()
+    try:
+        session.query(SysRole).filter(*[
+            SysRole.id == id,
+            SysRole.is_delete == 2
+        ]).update({
+            SysRole.is_delete: 1,
+            SysRole.updator: token_user.user_id,
+            SysRole.update_time: datetime.now()
+        })
+        session.commit()
+        return BaseRes(data='success')
+    except Exception as e:
+        session.rollback()
+        logger.error(traceback.format_exc())
+        return BaseRes(status=0, error=e)
