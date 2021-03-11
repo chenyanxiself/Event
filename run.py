@@ -6,7 +6,7 @@
 import os
 
 os.environ['FASTAPI_ENV'] = 'local'
-from config.settings import get_settings
+from env_config.settings import get_settings
 
 if not os.path.exists(get_settings().static_path):
     os.makedirs(get_settings().static_path)
