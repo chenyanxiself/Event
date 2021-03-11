@@ -3,7 +3,7 @@
 # @Time    : 2020/6/12 1:18 下午
 # @Author  : yxChen
 
-from config.base import BaseSetting
+from env_config.base import BaseSetting
 
 
 class Setting(BaseSetting):

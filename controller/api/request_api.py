@@ -12,7 +12,7 @@ from models.db_model.db import Db
 from models.request_model.request_reqm import ApiCase
 from util.jwt_util import auth_token
 import logging, hashlib, time, os, datetime
-from config.settings import get_settings
+from env_config.settings import get_settings
 from typing import List
 import consts.request_consts as reqest_consts
 import requests,time

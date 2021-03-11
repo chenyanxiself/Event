@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from typing import List
 from sqlalchemy import func
-from config.settings import get_settings
+from env_config.settings import get_settings
 
 mysql_config = get_settings().mysql_config
 DATABASE_URL = f"mysql+pymysql://{mysql_config['username']}:{mysql_config['password']}@{mysql_config['host']}:{mysql_config['port']}/{mysql_config['database']}"

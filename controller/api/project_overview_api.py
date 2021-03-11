@@ -13,7 +13,7 @@ from models.request_model.user_reqm import TokenUser
 from models.request_model.project_reqm import *
 from util.jwt_util import auth_token
 import logging, hashlib, time, os, datetime, json
-from config.settings import get_settings
+from env_config.settings import get_settings
 from typing import List, Optional, Any
 from util.project_verify import verify_project_deleted, verify_project_filed, verify_project_member, \
     verify_project_owner

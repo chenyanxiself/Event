@@ -11,10 +11,10 @@ from functools import lru_cache
 def get_settings():
     sys_env = os.getenv('FASTAPI_ENV')
     if sys_env == 'dev':
-        from config.dev import Setting as Config
+        from env_config.dev import Setting as Config
     elif sys_env=='local':
-        from config.local import Setting as Config
+        from env_config.local import Setting as Config
     else:
-        from config.local import Setting as Config
+        from env_config.local import Setting as Config
     return Config()
 
