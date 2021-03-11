@@ -60,7 +60,7 @@ class AtpProject(Base):
     name = Column(VARCHAR(50), nullable=False, comment='项目名称')
     remark = Column(VARCHAR(200), comment='项目简介')
     type = Column(TINYINT, server_default=text("'1'"), comment='项目类型 1 进行中 0 已归档')
-    img = Column(VARCHAR(500), comment='项目封面')
+    img = Column(BigInteger, comment='项目封面')
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')

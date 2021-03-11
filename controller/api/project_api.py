@@ -488,12 +488,7 @@ async def upload_project_img(
                 AtpProject.update_time: datetime.datetime.now()
             })
             session.commit()
-        return BaseRes(data={'id': file.id, 'fileName': filename, 'url': get_settings().archive_host
-
-
-
-
-                                                                         + filename})
+        return BaseRes(data={'id': file.id, 'fileName': filename, 'url': get_settings().archive_host + filename})
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))
@@ -515,10 +510,10 @@ async def del_project_img(
     os.remove(file_path)
     if task_id:
         task: AtpOverviewTask = session.query(AtpOverviewTask).get(task_id)
-        _, error = verify_project_filed(task.projectId)
+        _, error = verify_project_filed(task.project_id)
         if error:
             return error
-        _, error = verify_project_member(token_user.user_id, task.projectId)
+        _, error = verify_project_member(token_user.user_id, task.project_id)
         if error:
             return error
         img_list = json.loads(task.img)
@@ -646,52 +641,10 @@ async def get_suite_info_by_id(id: int = Query(...), project_id: int = Query(...
              AtpProjectApiSuiteCaseRelation.suite_id == id],
             AtpProjectApiSuiteCaseRelation.sort
         )
-        # suite_info: AtpProjectApiSuite = Db.select_by_primary_key(AtpProjectApiSuite, id)
         return BaseRes(data=case_list)
     except Exception as e:
         logger.error(e)
         return BaseRes(status=0, error=str(e))
-    # condition_list: list = [
-    #     AtpProjectApiCase.is_delete == 2,
-    #     AtpProjectApiCase.project_id == project_id
-    # ]
-    # try:
-    #     api_case_list: List[AtpProjectApiCase] = Db.select_by_condition(
-    #         AtpProjectApiCase,
-    #         condition_list,
-    #         AtpProjectApiCase.id,
-    #     )
-    # except Exception as e:
-    #     logger.error(e)
-    #     return BaseRes(status=0, error=str(e))
-    # total_case_list: list = []
-    # order_id = 0
-    # for item in api_case_list:
-    #     item_dict: dict = {}
-    #     order_id += 1
-    #     item_dict.setdefault('id', item.id)
-    #     item_dict.setdefault('order_id', order_id)
-    #     item_dict.setdefault('name', item.name)
-    #     item_dict.setdefault('method', item.method)
-    #     item_dict.setdefault('is_use_env', item.is_use_env)
-    #     item_dict.setdefault('request_host', item.request_host)
-    #     item_dict.setdefault('env_host', item.env_host)
-    #     item_dict.setdefault('request_path', item.request_path)
-    #     item_dict.setdefault('request_headers', json.loads(item.request_headers))
-    #     item_dict.setdefault('request_query', json.loads(item.request_query))
-    #     item_dict.setdefault('request_body', json.loads(item.request_body))
-    #     if item.is_use_env:
-    #         env: AtpProjectEnv = Db.select_by_primary_key(AtpProjectEnv, item.env_host)
-    #         item_dict.setdefault('real_host', env.host)
-    #     else:
-    #         item_dict.setdefault('real_host', item.request_host)
-    #     total_case_list.append(item_dict)
-    # return BaseRes(data={
-    #     'id': suite_info.id,
-    #     'suite_name': suite_info.name,
-    #     'total_case_list': total_case_list,
-    #     'relation': case_list,
-    # })
 
 
 @router.post('/createSuite/', response_model=BaseRes)
@@ -948,9 +901,3 @@ async def execute_suite(
     background_tasks.add_task(execute_suite_request, **fun_arg)
     return BaseRes()
 
-
-@router.post('/test')
-async def test(
-        id: bool = Body(..., embed=True)
-):
-    print(id)
