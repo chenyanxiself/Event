@@ -5,7 +5,7 @@
 
 import os
 
-if not os.environ['FASTAPI_ENV']:
+if not os.environ.get('FASTAPI_ENV'):
     os.environ['FASTAPI_ENV'] = 'local'
 
 from env_config.settings import get_settings
