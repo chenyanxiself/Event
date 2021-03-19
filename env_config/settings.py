@@ -5,12 +5,13 @@
 
 import os
 from functools import lru_cache
-
+import logging
 
 # 只实例化一次
 @lru_cache()
 def get_settings():
     sys_env = os.getenv('FASTAPI_ENV')
+    logging.info(f'Now the ENV: {sys_env}')
     if sys_env == 'dev':
         from env_config.dev import Setting as Config
     elif sys_env == 'local':
