@@ -186,6 +186,14 @@ async def delete_user(user_id: int = Body(..., embed=True), token_user: TokenUse
             SysUser.updator: token_user.user_id,
             SysUser.update_time: datetime.now()
         })
+        session.query(AtpProjectMember).filter(*[
+            AtpProjectMember.is_delete == 2,
+            AtpProjectMember.member_id == user_id
+        ]).update({
+            AtpProjectMember.is_delete: 1,
+            AtpProjectMember.updator: token_user.user_id,
+            AtpProjectMember.update_time: datetime.now()
+        })
         session.commit()
         return BaseRes(data='success')
     except Exception as e:
