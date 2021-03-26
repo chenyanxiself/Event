@@ -424,6 +424,7 @@ async def create_list(
         follower: List[int] = Body(..., embed=True),
         description: str = Body(None, embed=True),
         attachment: List[int] = Body(..., embed=True),
+        relevance_case: List[int] = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -451,6 +452,7 @@ async def create_list(
             priority=priority,
             follower=json.dumps(follower),
             img=json.dumps(attachment),
+            relevance_case=json.dumps(relevance_case),
             list_id=list_id,
             status=2,
             creator=token_user.user_id,
@@ -526,6 +528,10 @@ async def get_task_by_condition(
             AtpFileSystemFile.is_delete == 2,
             AtpFileSystemFile.id.in_(json.loads(task.img))
         ]).all()
+        cases: List[AtpProjectCase] = session.query(AtpProjectCase).filter(*[
+            AtpProjectCase.is_delete == 2,
+            AtpProjectCase.id.in_(json.loads(task.relevance_case))
+        ]).all()
         img_list = []
         for i in imgs:
             img_list.append({
@@ -535,6 +541,7 @@ async def get_task_by_condition(
             })
         task.follower = followers
         task.img = img_list
+        task.relevance_case = cases
         return BaseRes(data=task)
     except Exception as e:
         logger.error(traceback.format_exc())

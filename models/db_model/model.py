@@ -42,15 +42,17 @@ class AtpOverviewTask(Base):
     project_id = Column(BigInteger, nullable=False, comment='项目id')
     status = Column(TINYINT, nullable=False, comment='0 未完成 1已完成')
     sort = Column(Integer, nullable=False, comment='排序字段')
+    img = Column(String(50))
+    priority = Column(TINYINT, server_default=text("'3'"))
+    follower = Column(String(50))
+    relevance_case = Column(String(50),comment='关联用例')
+    description = Column(LONGTEXT)
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
     update_time = Column(DateTime, comment='创建时间')
-    img = Column(Text)
-    priority = Column(TINYINT, server_default=text("'3'"))
-    follower = Column(Text)
     is_delete = Column(TINYINT, server_default=text("'2'"))
-    description = Column(LONGTEXT)
+
 
 
 class AtpProject(Base):
