@@ -23,6 +23,7 @@ from controller.api.project_report_api import router as report_route
 from controller.api.project_case_api import router as case_route
 from controller.api.workstation_api import router as workstation_route
 from controller.api.project_overview_api import router as overview_route
+from controller.api.project_editor_api import router as editor_route
 import logging
 import traceback
 
@@ -73,6 +74,11 @@ def create_app() -> FastAPI:
         overview_route,
         prefix='/api/v1/project/overview',
         tags=['overview'],
+    )
+    app.include_router(
+        editor_route,
+        prefix='/api/v1/project/editor',
+        tags=['editor'],
     )
     return app
 

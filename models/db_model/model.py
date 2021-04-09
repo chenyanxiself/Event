@@ -33,6 +33,21 @@ class AtpOverviewList(Base):
     is_delete = Column(TINYINT, server_default=text("'2'"))
 
 
+class AtpProjectEditor(Base):
+    __tablename__ = 'atp_project_editor'
+
+    id = Column(BigInteger, primary_key=True)
+    project_id = Column(BigInteger, nullable=False, info='项目id')
+    title = Column(String(50), nullable=False, info='编辑器名')
+    data = Column(Text, info='编辑器数据')
+    type = Column(Integer, nullable=False, info='1 流程图 2 脑图')
+    creator = Column(BigInteger, info='创建人id')
+    create_time = Column(DateTime, info='创建时间')
+    updator = Column(BigInteger, info='更新人id')
+    update_time = Column(DateTime, info='创建时间')
+    is_delete = Column(TINYINT, server_default=text("'2'"))
+
+
 class AtpOverviewTask(Base):
     __tablename__ = 'atp_overview_task'
 
@@ -45,14 +60,13 @@ class AtpOverviewTask(Base):
     img = Column(String(50))
     priority = Column(TINYINT, server_default=text("'3'"))
     follower = Column(String(50))
-    relevance_case = Column(String(50),comment='关联用例')
+    relevance_case = Column(String(50), comment='关联用例')
     description = Column(LONGTEXT)
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
-
 
 
 class AtpProject(Base):
