@@ -38,6 +38,9 @@ async def get_all_editor(
             AtpProjectEditor.is_delete == 2,
             AtpProjectEditor.project_id == project_id
         ]).order_by(AtpProjectEditor.update_time.desc()).all()
+        for editor in editors:
+            user: SysUser = session.query(SysUser).get(editor.updator)
+            editor.updator = user.cname
         return BaseRes(data=editors)
     except Exception as e:
         logger.error(traceback.format_exc())
