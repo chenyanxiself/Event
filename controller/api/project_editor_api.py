@@ -79,7 +79,7 @@ async def update_editor(
         is_delete: int = Body(None, embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
-    _, error = verify_project_deleted(project_id)
+    _, error = verify_project_filed(project_id)
     if error:
         return error
     _, error = verify_project_member(token_user.user_id, project_id)
@@ -112,7 +112,7 @@ async def update_editor(
         type: int = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
-    _, error = verify_project_deleted(project_id)
+    _, error = verify_project_filed(project_id)
     if error:
         return error
     _, error = verify_project_member(token_user.user_id, project_id)

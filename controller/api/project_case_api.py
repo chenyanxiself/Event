@@ -28,7 +28,7 @@ async def create_module(
         request: Module,
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
-    _, error = verify_project_deleted(request.project_id)
+    _, error = verify_project_filed(request.project_id)
     if error:
         return error
     _, error = verify_project_member(token_user.user_id, request.project_id)
@@ -75,7 +75,7 @@ async def update_module(
         request: UpdateModule,
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
-    _, error = verify_project_deleted(request.project_id)
+    _, error = verify_project_filed(request.project_id)
     if error:
         return error
     _, error = verify_project_member(token_user.user_id, request.project_id)
@@ -99,7 +99,7 @@ async def delete_module(
         project_id: int = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
-    _, error = verify_project_deleted(project_id)
+    _, error = verify_project_filed(project_id)
     if error:
         return error
     _, error = verify_project_member(token_user.user_id, project_id)
