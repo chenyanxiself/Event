@@ -112,6 +112,13 @@ def db_init():
                 icon='project'
             )
             session.add(project_menu)
+            tool_menu = SysMenu(
+                name='工具',
+                menu_path='/tool',
+                menu_reg='^\/tool\/?',
+                icon='tool'
+            )
+            session.add(tool_menu)
             manage_menu = SysMenu(
                 name='管理',
                 menu_path='/manage',
@@ -150,6 +157,10 @@ def db_init():
             session.add(SysRoleMenu(
                 role_id=admin_role.id,
                 menu_id=project_menu.id
+            ))
+            session.add(SysRoleMenu(
+                role_id=admin_role.id,
+                menu_id=tool_menu.id
             ))
             session.add(SysRoleMenu(
                 role_id=admin_role.id,
