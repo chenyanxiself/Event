@@ -302,8 +302,9 @@ async def update_task_sort(
         project_id: int = Body(..., embed=True),
         start_list_id: int = Body(..., embed=True),
         end_list_id: int = Body(..., embed=True),
-        start_index: int = Body(..., embed=True),
-        end_index: int = Body(..., embed=True),
+        id: int = Body(..., embed=True),
+        before_id: int = Body(None, embed=True),
+        after_id: int = Body(None, embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -314,6 +315,13 @@ async def update_task_sort(
         return error
     session = Db.get_session()
     try:
+        source_task: AtpOverviewTask = session.query(AtpOverviewTask).get(id)
+        before_task: AtpOverviewTask or None = None
+        after_task: AtpOverviewTask or None = None
+        if before_id:
+            before_task = session.query(AtpOverviewTask).get(before_id)
+        if after_id:
+            after_task = session.query(AtpOverviewTask).get(after_id)
         start_list: AtpOverviewList = session.query(AtpOverviewList).get(start_list_id)
         end_list: AtpOverviewList = session.query(AtpOverviewList).get(end_list_id)
         if not (start_list and end_list):
@@ -322,16 +330,26 @@ async def update_task_sort(
             target_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
                 AtpOverviewTask.is_delete == 2,
                 AtpOverviewList.project_id == project_id,
-                AtpOverviewTask.list_id == start_list_id
+                AtpOverviewTask.list_id == end_list_id
             ]).order_by(AtpOverviewTask.sort).all()
-            new_sort = target_task_columns[end_index].sort
-            if start_index < end_index:
-                for i in target_task_columns[start_index + 1:end_index + 1]:
-                    i.sort -= 1
+            if after_task:
+                if source_task.sort < after_task.sort:
+                    new_sort = after_task.sort - 1
+                    temp_list = [x for x in target_task_columns if source_task.sort < x.sort < after_task.sort]
+                    for i in temp_list:
+                        i.sort -= 1
+                else:
+                    new_sort = after_task.sort
+                    for i in [x for x in target_task_columns if after_task.sort <= x.sort < source_task.sort]:
+                        i.sort += 1
             else:
-                for i in target_task_columns[end_index:start_index]:
-                    i.sort += 1
-            target_task_columns[start_index].sort = new_sort
+                # start<end并且end为最后一个
+                new_sort = target_task_columns[-1].sort
+                temp_list = [x for x in target_task_columns if
+                             source_task.sort < x.sort < target_task_columns[-1].sort + 1]
+                for i in temp_list:
+                    i.sort -= 1
+            source_task.sort = new_sort
         else:
             start_task_columns: List[AtpOverviewTask] = session.query(AtpOverviewTask).filter(*[
                 AtpOverviewTask.is_delete == 2,
@@ -343,20 +361,28 @@ async def update_task_sort(
                 AtpOverviewList.project_id == project_id,
                 AtpOverviewTask.list_id == end_list_id
             ]).order_by(AtpOverviewTask.sort).all()
-            start_task = start_task_columns[start_index]
-            for i in start_task_columns[start_index:]:
+            for i in [x for x in start_task_columns if x.sort > source_task.sort]:
                 i.sort -= 1
-            if len(end_task_columns) == end_index:
-                try:
-                    new_sort = end_task_columns[-1].sort + 1
-                except Exception:
-                    new_sort = 1
+            if after_task and before_task:
+                new_sort = after_task.sort
+                for i in [x for x in end_task_columns if x.sort >= after_task.sort]:
+                    i.sort += 1
+            elif after_task and not before_task:
+                new_sort = after_task.sort
+                for i in [x for x in end_task_columns if x.sort >= after_task.sort]:
+                    i.sort += 1
+            elif before_task and not after_task:
+                new_sort = before_task.sort + 1
+                for i in [x for x in end_task_columns if x.sort > before_task.sort]:
+                    i.sort += 1
             else:
-                new_sort = end_task_columns[end_index].sort
-            for i in end_task_columns[end_index:]:
-                i.sort += 1
-            start_task.sort = new_sort
-            start_task.list_id = end_list.id
+                new_sort = 1
+                init_sort = 2
+                for i in end_task_columns:
+                    i.sort = init_sort
+                    init_sort += 1
+            source_task.sort = new_sort
+            source_task.list_id = end_list_id
         session.commit()
         return BaseRes()
     except Exception as e:
