@@ -1,5 +1,5 @@
 <p align="center">
-   <img alt="Logo" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/ic-logo.png">
+   <img alt="Logo" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/ic-logo.png">
 </p>
 <h1 align="center">Event</h1>
 
@@ -21,32 +21,32 @@
 - 轻量级项目协作
 
 <p align="center">
-   <img alt="overview" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/overview.png">
+   <img alt="overview" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/overview.png">
 </p>
 
 - 测试用例集成项目管理
 <p align="center">
-   <img alt="case" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/case.png">
+   <img alt="case" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/case.png">
 </p>
 
 - 接口测试
 <p align="center">
-   <img alt="apicase" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/apicase.png">
+   <img alt="apicase" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/apicase.png">
 </p>
 
 - 接口测试报告
 <p align="center">
-   <img alt="testreport" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/testreport.png">
+   <img alt="testreport" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/testreport.png">
 </p>
 
 - 在线编辑脑图、流程图
 <p align="center">
-   <img alt="editor" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/editor.png">
+   <img alt="editor" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/editor.png">
 </p>
 
 - 常用工具集成
 <p align="center">
-   <img alt="tools" height="64" src="https://github.com/chenyanxiself/Event/tree/master/docs/tools.png">
+   <img alt="tools" height="64" src="https://github.com/chenyanxiself/Event/blob/master/docs/tools.png">
 </p>
 
 ## 部署
