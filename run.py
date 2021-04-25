@@ -4,15 +4,8 @@
 # @Author  : yxChen
 
 import os
-
-if not os.environ.get('FASTAPI_ENV'):
-    os.environ['FASTAPI_ENV'] = 'local'
-
+import uvicorn
 from env_config.settings import get_settings
-
-if not os.path.exists(get_settings().static_path):
-    os.makedirs(get_settings().static_path)
-
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
@@ -181,13 +174,9 @@ def db_init():
 
 
 def start():
-    import uvicorn
     db_init()
     app = create_app()
     if not os.path.exists(get_settings().static_path):
         os.mkdir(get_settings().static_path)
     uvicorn.run(app, **get_settings().config)
 
-
-if __name__ == '__main__':
-    start()
