@@ -30,6 +30,7 @@ class UpdateProject(Project):
 class ProjectApiCase(ApiCase):
     name: str = Body(...)
     project_id: int = Body(...)
+    suite_id:int=Body(...)
 
 
 class UpdateProjectApiCase(ProjectApiCase):

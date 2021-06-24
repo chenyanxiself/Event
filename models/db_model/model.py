@@ -91,13 +91,13 @@ class AtpProjectApiCase(Base):
     name = Column(VARCHAR(50), nullable=False, comment='用例名称')
     method = Column(TINYINT, nullable=False, comment='请求方式 1 get 2 post')
     project_id = Column(BigInteger, nullable=False, comment='项目id')
-    request_path = Column(VARCHAR(200), comment='请求路径')
+    suite_id = Column(BigInteger, nullable=False)
+    request_url = Column(Text, comment='请求路径')
     is_use_env = Column(TINYINT, server_default=text("'0'"), comment='是否使用环境 1:使用,0:不使用')
     env_host = Column(BigInteger, comment='环境id')
-    request_host = Column(VARCHAR(200), comment='请求域名')
-    request_headers = Column(VARCHAR(300), comment='请求头部')
-    request_query = Column(VARCHAR(300), comment='请求参数')
-    request_body = Column(VARCHAR(300), comment='请求主体')
+    request_headers = Column(Text, comment='请求头部')
+    request_query = Column(Text, comment='请求参数')
+    request_body = Column(Text, comment='请求主体')
     creator = Column(BigInteger, comment='创建人id')
     create_time = Column(DateTime, comment='创建时间')
     updator = Column(BigInteger, comment='更新人id')
@@ -116,21 +116,6 @@ class AtpProjectApiSuite(Base):
     updator = Column(BigInteger, comment='更新人id')
     update_time = Column(DateTime, comment='创建时间')
     is_delete = Column(TINYINT, server_default=text("'2'"))
-
-
-class AtpProjectApiSuiteCaseRelation(Base):
-    __tablename__ = 'atp_project_api_suite_case_relation'
-
-    id = Column(BigInteger, primary_key=True)
-    case_id = Column(BigInteger, nullable=False, comment='用例id')
-    suite_id = Column(BigInteger, nullable=False, comment='测试集id')
-    project_id = Column(BigInteger, nullable=False, comment='项目id')
-    creator = Column(BigInteger, comment='创建人id')
-    create_time = Column(DateTime, comment='创建时间')
-    updator = Column(BigInteger, comment='更新人id')
-    update_time = Column(DateTime, comment='创建时间')
-    is_delete = Column(TINYINT, server_default=text("'2'"))
-    sort = Column(Integer, nullable=False, comment='排序')
 
 
 class AtpProjectCase(Base):

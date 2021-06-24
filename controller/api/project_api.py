@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2020/6/17 6:43 下午
 # @Author  : yxChen
-
+import traceback
 
 from fastapi import APIRouter, Body, Depends, UploadFile, File, Query, BackgroundTasks
 from consts.log_name import API_PROJECT
@@ -55,7 +55,7 @@ async def create_project(
         session.commit()
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         session.rollback()
         return BaseRes(status=0, error=str(e))
 
@@ -82,7 +82,7 @@ async def get_all_project(type: int = Query(...)) -> BaseRes:
                 }
         return BaseRes(data=project_list)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -120,7 +120,7 @@ async def get_project_id(id: int = Query(...)) -> BaseRes:
             })
         return BaseRes(data=project)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -188,7 +188,7 @@ async def update_project_id(
         return BaseRes(data=project)
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
     finally:
         session.close()
@@ -218,7 +218,7 @@ async def update_project_type(
         )
         return BaseRes(data=count)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -246,7 +246,7 @@ async def update_project_env(
         )
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -273,7 +273,7 @@ async def create_project_env(
         )
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -309,7 +309,7 @@ async def delete_project_env(
         return BaseRes()
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -336,7 +336,7 @@ async def delete_project(
         )
         return BaseRes(data=count)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -367,13 +367,31 @@ async def delete_api_case_by_id(
         )
         return BaseRes(data=update_count)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
+
+
+@router.get('/getApiCaseSuite/', response_model=BaseRes, dependencies=[Depends(auth_token)])
+async def get_api_case_by_condition(
+        project_id: int = Query(...),
+) -> BaseRes:
+    _, error = verify_project_deleted(project_id)
+    if error:
+        return error
+    suite: List[AtpProjectApiSuite] = Db.select_by_condition(
+        AtpProjectApiSuite,
+        [
+            AtpProjectApiSuite.is_delete == 2,
+            AtpProjectApiSuite.project_id == project_id
+        ]
+    )
+    return BaseRes(data=suite)
 
 
 @router.get('/getApiCaseByCondition/', response_model=BaseRes, dependencies=[Depends(auth_token)])
 async def get_api_case_by_condition(
         project_id: int = Query(...),
+        suite_id: int = Query(...),
         page_num: int = Query(...),
         page_size: int = Query(...),
         type: int = Query(...),
@@ -391,7 +409,8 @@ async def get_api_case_by_condition(
             limit = page_size
         condition_list: list = [
             AtpProjectApiCase.is_delete == 2,
-            AtpProjectApiCase.project_id == project_id
+            AtpProjectApiCase.project_id == project_id,
+            AtpProjectApiCase.suite_id == suite_id
         ]
         if keyword and keyword != '':
             condition_list.append(AtpProjectApiCase.name.like(f'%{keyword}%'))
@@ -415,12 +434,12 @@ async def get_api_case_by_condition(
             item_dict.setdefault('name', item.name)
             item_dict.setdefault('method', item.method)
             item_dict.setdefault('is_use_env', item.is_use_env)
-            item_dict.setdefault('request_host', item.request_host)
             item_dict.setdefault('env_host', item.env_host)
-            item_dict.setdefault('request_path', item.request_path)
+            item_dict.setdefault('request_url', item.request_url)
             item_dict.setdefault('request_headers', json.loads(item.request_headers))
             item_dict.setdefault('request_query', json.loads(item.request_query))
-            item_dict.setdefault('request_body', json.loads(item.request_body))
+            item_dict.setdefault('request_body', item.request_body)
+            item_dict.setdefault('suite_id', item.suite_id)
             if item.is_use_env:
                 if item.env_host:
                     env: AtpProjectEnv = Db.select_by_primary_key(AtpProjectEnv, item.env_host)
@@ -428,11 +447,11 @@ async def get_api_case_by_condition(
                 else:
                     item_dict.setdefault('real_host', None)
             else:
-                item_dict.setdefault('real_host', item.request_host)
+                item_dict.setdefault('real_host', None)
             res_list.append(item_dict)
         return BaseRes(data={'data': res_list, 'total': total})
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -447,7 +466,7 @@ async def get_env_by_project_id(project_id: int = Query(...)) -> BaseRes:
                                                                 AtpProjectEnv.project_id == project_id])
         return BaseRes(data=env_list)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -490,7 +509,7 @@ async def upload_project_img(
             session.commit()
         return BaseRes(data={'id': file.id, 'fileName': filename, 'url': get_settings().archive_host + filename})
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -537,18 +556,18 @@ async def create_project_api_case(
     try:
         request_headers: str = json.dumps(project_api_case.request_headers)
         request_query: str = json.dumps(project_api_case.request_query)
-        request_body: str = json.dumps(project_api_case.request_body)
+        request_body: str = project_api_case.request_body
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error='json转换异常 : ' + str(e))
     atp_project_api_case: AtpProjectApiCase = AtpProjectApiCase(
         name=project_api_case.name,
         method=project_api_case.request_method,
         project_id=project_api_case.project_id,
-        request_path=project_api_case.request_path,
+        suite_id=project_api_case.suite_id,
+        request_url=project_api_case.request_url,
         is_use_env=project_api_case.request_host.is_user_env,
         env_host=project_api_case.request_host.env_host,
-        request_host=project_api_case.request_host.request_host,
         request_headers=request_headers,
         request_query=request_query,
         request_body=request_body,
@@ -559,7 +578,7 @@ async def create_project_api_case(
         Db.insert(atp_project_api_case)
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -577,9 +596,9 @@ async def update_project_api_case(
     try:
         request_headers: str = json.dumps(update_project_api_case.request_headers)
         request_query: str = json.dumps(update_project_api_case.request_query)
-        request_body: str = json.dumps(update_project_api_case.request_body)
+        request_body: str = str(update_project_api_case.request_body)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
     try:
         db_res: int = Db.update_by_condition(
@@ -592,10 +611,10 @@ async def update_project_api_case(
                 AtpProjectApiCase.name: update_project_api_case.name,
                 AtpProjectApiCase.method: update_project_api_case.request_method,
                 AtpProjectApiCase.project_id: update_project_api_case.project_id,
-                AtpProjectApiCase.request_path: update_project_api_case.request_path,
+                AtpProjectApiCase.suite_id: update_project_api_case.suite_id,
+                AtpProjectApiCase.request_url: update_project_api_case.request_url,
                 AtpProjectApiCase.is_use_env: update_project_api_case.request_host.is_user_env,
                 AtpProjectApiCase.env_host: update_project_api_case.request_host.env_host,
-                AtpProjectApiCase.request_host: update_project_api_case.request_host.request_host,
                 AtpProjectApiCase.request_headers: request_headers,
                 AtpProjectApiCase.request_query: request_query,
                 AtpProjectApiCase.request_body: request_body,
@@ -605,51 +624,14 @@ async def update_project_api_case(
         )
         return BaseRes(data=db_res)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
-@router.get('/getSuiteByProjectId/', response_model=BaseRes, dependencies=[Depends(auth_token)])
-async def get_suite_by_project_id(project_id: int = Query(...)) -> BaseRes:
-    _, error = verify_project_deleted(project_id)
-    if error:
-        return error
-    suite_list: List[AtpProjectApiSuite] = Db.select_by_condition(
-        AtpProjectApiSuite,
-        [AtpProjectApiSuite.is_delete == 2, AtpProjectApiSuite.project_id == project_id]
-    )
-    res_list: list = []
-    for suite in suite_list:
-        item = {
-            'id': suite.id,
-            'name': suite.name,
-            'project_id': suite.project_id,
-        }
-        res_list.append(item)
-    return BaseRes(data=res_list)
-
-
-@router.get('/getSuiteInfoById/', response_model=BaseRes, dependencies=[Depends(auth_token)])
-async def get_suite_info_by_id(id: int = Query(...), project_id: int = Query(...)) -> BaseRes:
-    _, error = verify_project_deleted(project_id)
-    if error:
-        return error
-    try:
-        case_list: List[AtpProjectApiSuiteCaseRelation] = Db.select_by_condition(
-            AtpProjectApiSuiteCaseRelation,
-            [AtpProjectApiSuiteCaseRelation.project_id == project_id, AtpProjectApiSuiteCaseRelation.is_delete == 2,
-             AtpProjectApiSuiteCaseRelation.suite_id == id],
-            AtpProjectApiSuiteCaseRelation.sort
-        )
-        return BaseRes(data=case_list)
-    except Exception as e:
-        logger.error(e)
-        return BaseRes(status=0, error=str(e))
-
-
-@router.post('/createSuite/', response_model=BaseRes)
+@router.post('/createApiCaseSuite/', response_model=BaseRes)
 async def create_suite(
-        project_id: int = Body(..., embed=True), suite_name: str = Body(..., embed=True),
+        project_id: int = Body(..., embed=True),
+        suite_name: str = Body(..., embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -664,14 +646,16 @@ async def create_suite(
         Db.insert(suite)
         return BaseRes()
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
-@router.post('/deleteSuite/', response_model=BaseRes)
+@router.post('/updateApiCaseSuite/', response_model=BaseRes)
 async def delete_suite(
         suite_id: int = Body(..., embed=True),
         project_id: int = Body(..., embed=True),
+        suite_name: str = Body(None, embed=True),
+        is_delete: int = Body(None, embed=True),
         token_user: TokenUser = Depends(auth_token)
 ) -> BaseRes:
     _, error = verify_project_filed(project_id)
@@ -680,16 +664,19 @@ async def delete_suite(
     _, error = verify_project_member(token_user.user_id, project_id)
     if error:
         return error
+    update_list = {
+        AtpProjectApiSuite.updator: token_user.user_id,
+        AtpProjectApiSuite.update_time: datetime.datetime.now()
+    }
+    if suite_name:
+        update_list.setdefault(AtpProjectApiSuite.name, suite_name)
+    if is_delete:
+        update_list.setdefault(AtpProjectApiSuite.is_delete, int(is_delete))
     try:
-        count = Db.update_by_condition(AtpProjectApiSuite, [AtpProjectApiSuite.id == suite_id],
-                                       {
-                                           AtpProjectApiSuite.is_delete: 1,
-                                           AtpProjectApiSuite.updator: token_user.user_id,
-                                           AtpProjectApiSuite.update_time: datetime.datetime.now()
-                                       })
+        count = Db.update_by_condition(AtpProjectApiSuite, [AtpProjectApiSuite.id == suite_id], update_list)
         return BaseRes(data=count)
     except Exception as e:
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
 
 
@@ -754,7 +741,7 @@ async def update_suite_case_relation(
         return BaseRes()
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
     finally:
         session.close()
@@ -805,7 +792,7 @@ async def update_suite_case_sort(
         return BaseRes()
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
     finally:
         session.close()
@@ -890,7 +877,7 @@ async def execute_suite(
         report_id = report.id
     except Exception as e:
         session.rollback()
-        logger.error(e)
+        logger.error(traceback.format_exc())
         return BaseRes(status=0, error=str(e))
     finally:
         session.close()
@@ -900,4 +887,3 @@ async def execute_suite(
     }
     background_tasks.add_task(execute_suite_request, **fun_arg)
     return BaseRes()
-
