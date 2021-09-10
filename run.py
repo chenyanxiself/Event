@@ -82,7 +82,8 @@ def db_init():
     from sqlalchemy_utils import database_exists, create_database
     if not database_exists(engine.url):
         create_database(engine.url)
-        Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
+    if not database_exists(engine.url):
         session = Db.get_session()
         try:
             admin_user = SysUser(
