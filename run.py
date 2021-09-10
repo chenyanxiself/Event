@@ -176,8 +176,7 @@ def db_init():
 
 def start():
     db_init()
-    app = create_app()
     if not os.path.exists(get_settings().static_path):
         os.mkdir(get_settings().static_path)
+    app = create_app()
     uvicorn.run(app, **get_settings().config)
-
