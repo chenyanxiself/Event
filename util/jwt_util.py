@@ -4,9 +4,12 @@
 # @Author  : yxChen
 
 from datetime import datetime, timedelta
+from typing import Optional
+
 import jwt
 from jwt import PyJWTError
 from fastapi import Depends, status
+from fastapi.websockets import WebSocketDisconnect, WebSocket
 from fastapi.security import OAuth2PasswordBearer
 from starlette.exceptions import HTTPException
 from models.request_model.user_reqm import TokenUser
@@ -23,6 +26,7 @@ def create_access_token(*, data: dict, expires_delta: timedelta = timedelta(days
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 async def auth_token(*, token: str = Depends(oauth2_scheme)) -> TokenUser:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -34,7 +38,25 @@ async def auth_token(*, token: str = Depends(oauth2_scheme)) -> TokenUser:
         user_cname: str = payload.get("cname")
         if user_id is None or user_cname is None:
             raise credentials_exception
-        user = TokenUser(user_id=user_id,user_cname=user_cname)
+        user = TokenUser(user_id=user_id, user_cname=user_cname)
     except PyJWTError:
         raise credentials_exception
+    return user
+
+
+async def auth_websocket_token(
+        websocket: WebSocket,
+):
+    token: str = websocket.headers.get("Authorization")
+    try:
+        token = token.split(' ')[1]
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("id")
+        user_cname: str = payload.get("cname")
+        if user_id is None or user_cname is None:
+            return None
+        user = TokenUser(user_id=user_id, user_cname=user_cname)
+    except PyJWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return None
     return user

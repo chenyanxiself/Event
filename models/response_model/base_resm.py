@@ -13,3 +13,9 @@ class BaseRes(BaseModel):
     status: int = 1
     data: Any = ''
     error: str = ''
+
+
+class BaseWebsocketRes(BaseModel):
+    status: int = 1
+    data: Any = ''
+    error: str = ''
